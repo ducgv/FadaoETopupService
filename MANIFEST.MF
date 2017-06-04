@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Sealed: true
+Main-Class: com.itpro.etopup.main.FadaoETopupService
+Class-Path: mysql-connector-java-5.1.17-bin.jar SmppLib.jar ITProLib.jar TopupAdvManageApiWS.jar ITProSmsBuilder.jar
+
