@@ -526,7 +526,7 @@ public class DbConnection extends MySQLConnection {
 		return batchRechargeElements;
 	}
 
-	public void deductBalance(BatchRechargeElement batchRechargeElement) {
+	public void deductBalance(BatchRechargeElement batchRechargeElement) throws SQLException{
 		// TODO Auto-generated method stub
 		
 	}

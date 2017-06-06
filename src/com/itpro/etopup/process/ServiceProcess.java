@@ -588,7 +588,7 @@ public class ServiceProcess extends ProcessingThread {
 		// TODO Auto-generated method stub
 		RequestInfo requestInfo = listRequestProcessing.get(paymentPostpaidCmdResp.msisdn);
 		RechargeCmd rechargeCmd = (RechargeCmd) requestInfo.dealerRequest.requestCmd;
-		DealerInfo dealerInfo = rechargeCmd.dealerInfo;
+//		DealerInfo dealerInfo = rechargeCmd.dealerInfo;
 		DealerRequest dealerRequest = requestInfo.dealerRequest;
 		TransactionRecord transactionRecord = requestInfo.transactionRecord;
 		if(paymentPostpaidCmdResp.resultCode==PaymentGWResultCode.RC_PAYMENT_POSTPAID_SUCCESS){
@@ -700,7 +700,7 @@ public class ServiceProcess extends ProcessingThread {
 		// TODO Auto-generated method stub
 		RequestInfo requestInfo = listRequestProcessing.get(paymentPostpaidCmdResp.msisdn);
 		BatchRechargeCmd batchRechargeCmd = (BatchRechargeCmd) requestInfo.dealerRequest.requestCmd;
-		DealerInfo dealerInfo = batchRechargeCmd.dealerInfo;
+//		DealerInfo dealerInfo = batchRechargeCmd.dealerInfo;
 		DealerRequest dealerRequest = requestInfo.dealerRequest;
 		TransactionRecord transactionRecord = requestInfo.transactionRecord;
 		BatchRechargeElement batchRechargeElement = batchRechargeCmd.currentBatchRechargeElement;
@@ -723,13 +723,13 @@ public class ServiceProcess extends ProcessingThread {
 					logInfo(batchRechargeCmd.getRespString());
 					String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RECEIVER_RECHARGE_SUCCESS_NOTIFY")
 								.replaceAll("<DATE_TIME>", getDateTimeFormated(transactionRecord.date_time))
-								.replaceAll("<AMOUNT>", ""+batchRechargeCmd.amount)
+								.replaceAll("<AMOUNT>", ""+batchRechargeCmd.batch_recharge_total_amount)
 								.replaceAll("<DEALER_NUMBER> ", batchRechargeCmd.msisdn.replaceFirst("856", "0"));
 						String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECEIVER_RECHARGE_SUCCESS_NOTIFY")
-								.replaceAll("<AMOUNT>", ""+batchRechargeCmd.amount)
+								.replaceAll("<AMOUNT>", ""+batchRechargeCmd.batch_recharge_total_amount)
 								.replaceAll("<DEALER_NUMBER> ", batchRechargeCmd.msisdn.replaceFirst("856", "0"));
 						
-						sendSms("856"+batchRechargeCmd.rechargeMsisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
+						sendSms("856"+batchRechargeCmd.currentBatchRechargeElement.recharge_msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
 						dealerRequest.result = "CONTENT_RECHARGE_OTHER_SUCCESS";
 					
 					updateDealerRequest(requestInfo.dealerRequest);
@@ -737,7 +737,7 @@ public class ServiceProcess extends ProcessingThread {
 				}
 				else{
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
-					transactionRecord.balance_after = batchRechargeCmd.balanceAfter;
+//					transactionRecord.balance_after = batchRechargeCmd.balanceAfter;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
 					transactionRecord.result_description = "Execute SQL function failed";
 					insertTransactionRecord(transactionRecord);
@@ -769,15 +769,15 @@ public class ServiceProcess extends ProcessingThread {
 			}
 		}
 		else{
-			TransactionRecord transactionRecord = createTransactionRecord();
+			//TransactionRecord transactionRecord = createTransactionRecord();
 			transactionRecord.dealer_msisdn = requestInfo.dealerInfo.msisdn;
 			transactionRecord.dealer_id = requestInfo.dealerInfo.id;
 			transactionRecord.balance_before = requestInfo.dealerInfo.balance;
 			transactionRecord.balance_after = requestInfo.dealerInfo.balance;
 			transactionRecord.type = TransactionRecord.TRANS_TYPE_RECHARGE;
-			transactionRecord.balance_changed_amount = -1*batchRechargeCmd.amount;
-			transactionRecord.recharge_msidn = batchRechargeCmd.rechargeMsisdn;
-			transactionRecord.recharge_value = batchRechargeCmd.amount;
+			transactionRecord.balance_changed_amount = -1*batchRechargeCmd.batch_recharge_total_amount;
+			transactionRecord.batch_recharge_id = batchRechargeCmd.batch_recharge_id;
+			//transactionRecord.recharge_value = batchRechargeCmd.amount;
 			batchRechargeCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
 			batchRechargeCmd.resultString = "Payment Postpaid subscriber failed";
 			transactionRecord.result_description = batchRechargeCmd.resultString;
