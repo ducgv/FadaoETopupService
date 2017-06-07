@@ -184,6 +184,9 @@ public class DealerRequest {
 					moveStockCmd7.amount = moveStockCmd7.amount*1000;
 				requestCmd = moveStockCmd7;
 			}
+			else{
+				cmd_type = CMD_TYPE_WRONG_SYNTAX;
+			}
 			break;
 		default:
 			cmd_type = CMD_TYPE_WRONG_SYNTAX;

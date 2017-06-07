@@ -39,7 +39,7 @@ public class TopupPrepaidCmd extends PaymentGWCmd {
 		return "TopupPrepaidResp: msisdn:"+rechargeMsisdn+
 				"; amount:"+amount+
 				"; currentBalance:"+currentBalance+
-				"; newActiveDate:"+(new SimpleDateFormat("yyyy-MM-dd")).format(newActiveDate)+
+				"; newActiveDate:"+newActiveDate==null?"NULL":(new SimpleDateFormat("yyyy-MM-dd")).format(newActiveDate)+
 				"; resultCode:"+resultCode+
 				"; resultString:"+resultString;
 	}

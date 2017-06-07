@@ -382,6 +382,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.dealer_id = dealerInfo.id;
 					transactionRecord.balance_after = dealerInfo.balance;
 					transactionRecord.type = TransactionRecord.TRANS_TYPE_ADD_BALANCE;
+					transactionRecord.transaction_amount_req = agentRequest.balance_add_amount;
 					transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
 					transactionRecord.agent = agentRequest.agent_username;
 					transactionRecord.agent_id = agentRequest.agent_id;
@@ -389,7 +390,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.invoice_code = agentRequest.invoice_code;
 					transactionRecord.result_description = "Add ETopup balance successfully";
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
-					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 					insertTransactionRecord(transactionRecord);
 					agentRequest.status = AgentRequest.STATUS_SUCCESS;
 					agentRequest.dealer_id = dealerInfo.id;
@@ -808,6 +809,7 @@ public class ServiceProcess extends ProcessingThread {
 			try {
 				connection.deductBalance(rechargeCmd);
 				if(rechargeCmd.db_return_code==0){
+					transactionRecord.balance_changed_amount = -1*rechargeCmd.amount;
 					transactionRecord.balance_after = rechargeCmd.balanceAfter;
 					transactionRecord.recharge_sub_type = GetSubInfoCmd.SUBS_TYPE_PREPAID;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
@@ -1270,7 +1272,7 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecord.dealer_msisdn = dealerInfo.msisdn;
 		transactionRecord.dealer_id = dealerInfo.id;
 		transactionRecord.balance_before = dealerInfo.balance;
-		transactionRecord.balance_changed_amount = -1*rechargeCmd.amount;
+		transactionRecord.transaction_amount_req = -1*rechargeCmd.amount;
 		transactionRecord.recharge_msidn = rechargeCmd.rechargeMsisdn;
 		transactionRecord.recharge_value = rechargeCmd.amount;
 		dealerRequest.dealer_id = dealerInfo.id;
@@ -1840,12 +1842,12 @@ public class ServiceProcess extends ProcessingThread {
 			dealerRequest.result = "CONTENT_NOT_IS_DEALER";
 			updateDealerRequest(dealerRequest);
 			listRequestProcessing.remove(dealerRequest.msisdn);
-			return true;
+			return false;
 		}
 		else{
 			dealerRequest.dealer_id = dealerInfo.id;
 			dealerRequest.requestCmd.dealerInfo = dealerInfo;
-			return false;
+			return true;
 		}
 	}
 }
