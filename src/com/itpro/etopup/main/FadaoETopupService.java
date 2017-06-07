@@ -3,7 +3,7 @@
  */
 package com.itpro.etopup.main;
 
-import com.itpro.airtimedata.charging.main.Config;
+
 import com.itpro.cfgreader.CfgReader;
 import com.itpro.log4j.ITProLog4jCategory;
 import com.itpro.util.MainForm;
