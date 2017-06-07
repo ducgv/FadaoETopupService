@@ -115,7 +115,7 @@ public class PaymentGWSession extends ProcessingThread {
 		logInfo(topupPrepaidCmd.getReqString());
 		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
 		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSTopupPrepaidResult result = service.topupPrepaid(topupPrepaidCmd.rechargeMsisdn, ""+topupPrepaidCmd.amount, ""+topupPrepaidCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(topupPrepaidCmd.reqDate), topupPrepaidCmd.token);
+		TopupPaymentApiWSTopupPrepaidResult result = service.topupPrepaid(topupPrepaidCmd.msisdn, ""+topupPrepaidCmd.amount, ""+topupPrepaidCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(topupPrepaidCmd.reqDate), topupPrepaidCmd.token);
 		topupPrepaidCmd.result = PaymentGWResultCode.R_SUCCESS;
 		topupPrepaidCmd.currentBalance = result.getTargetCurrentBalance().isNil()?0:Integer.parseInt(result.getTargetCurrentBalance().getValue());
 		try {
@@ -123,7 +123,7 @@ public class PaymentGWSession extends ProcessingThread {
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
-			logError("OnGetSubInfoCmd: Error when parse activeDate field of msisdn "+topupPrepaidCmd.rechargeMsisdn);
+			logError("OnTopupPrepaidCmd: Error when parse newActiveDate field of msisdn "+topupPrepaidCmd.msisdn);
 			topupPrepaidCmd.newActiveDate = null;
 		}
 		TopupPaymentApiWSTopupPrepaidHeader header = result.getTopupMasterSimPrepaidHeader().isNil()?null:result.getTopupMasterSimPrepaidHeader().getValue();
@@ -145,7 +145,7 @@ public class PaymentGWSession extends ProcessingThread {
 		logInfo(getSubInfoCmd.getReqString());
 		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
 		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSQeuryProfilefoResult result = service.qeuryProfileSubcriber(getSubInfoCmd.rechargeMsisdn, ""+getSubInfoCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(getSubInfoCmd.reqDate), getSubInfoCmd.token);
+		TopupPaymentApiWSQeuryProfilefoResult result = service.qeuryProfileSubcriber(getSubInfoCmd.msisdn, ""+getSubInfoCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(getSubInfoCmd.reqDate), getSubInfoCmd.token);
 		getSubInfoCmd.result = PaymentGWResultCode.R_SUCCESS;
 		getSubInfoCmd.subType = result.getPayType().isNil()?-1:Integer.parseInt(result.getPayType().getValue());
 		try {
@@ -153,9 +153,39 @@ public class PaymentGWSession extends ProcessingThread {
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
-			logError("OnGetSubInfoCmd: Error when parse activeDate field of msisdn "+getSubInfoCmd.rechargeMsisdn);
+			logError("OnGetSubInfoCmd: Error when parse activeDate field of msisdn "+getSubInfoCmd.msisdn);
 			getSubInfoCmd.activeDate = null;
+			getSubInfoCmd.resultCode=-1;
+			getSubInfoCmd.resultString="Wrong ActiveDate field format:"+result.getActiveDate().getValue();
+			logInfo(getSubInfoCmd.getRespString());
+			queueResp.enqueue(getSubInfoCmd);
+			return;
+			
 		}
+		try{
+			getSubInfoCmd.balance = result.getPpsBalance().isNil()?0:Integer.parseInt(result.getPpsBalance().getValue());
+		}
+		catch(NumberFormatException e){
+			logError("OnGetSubInfoCmd: Error when parse balance field of msisdn "+getSubInfoCmd.msisdn);
+			getSubInfoCmd.balance = 0;
+			if(getSubInfoCmd.subType == GetSubInfoCmd.SUBS_TYPE_PREPAID){
+				getSubInfoCmd.resultCode=-1;
+				getSubInfoCmd.resultString="Wrong Balance field format:"+result.getActiveDate().getValue();
+				logInfo(getSubInfoCmd.getRespString());
+				queueResp.enqueue(getSubInfoCmd);
+				return;
+			}
+		}
+		
+		getSubInfoCmd.subId = result.getSubID().isNil()?"":result.getSubID().getValue();
+		if(getSubInfoCmd.subId == null|| getSubInfoCmd.subId.equals("")){
+			getSubInfoCmd.resultCode=-1;
+			getSubInfoCmd.resultString="SubID is NULL"+result.getActiveDate().getValue();
+			logInfo(getSubInfoCmd.getRespString());
+			queueResp.enqueue(getSubInfoCmd);
+			return;
+		}
+		
 		TopupPaymentApiWSQeuryProfileHeader header = result.getQeuryBasicInfoHeader().isNil()?null:result.getQeuryBasicInfoHeader().getValue();
 		if(header!=null){
 			getSubInfoCmd.resultCode=Integer.parseInt(header.getResultcode().getValue());

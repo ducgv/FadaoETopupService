@@ -17,6 +17,7 @@ public class TransactionRecord {
 	public final static int TRANS_TYPE_MOVE_STOCK = 4;
 	public final static int TRANS_TYPE_REFUND_RECHARGE = 5;
 	public final static int TRANS_TYPE_REFUND_MOVE_STOCK = 6;
+	public final static int TRANS_TYPE_REFUND_ADD_BALANCE = 7;
 	
 	public final static int TRANS_STATUS_SUCCESS = 2;
 	public final static int TRANS_STATUS_FAILED = 3;
@@ -39,7 +40,8 @@ public class TransactionRecord {
 	public int recharge_sub_type;
 	public int recharge_value;
 	public long balance_before;
-	public long balance_changed_amount;
+	public long transaction_amount_req;
+	public long balance_changed_amount = 0;
 	public long balance_after;
 	public long cash_value;
 	public String invoice_code;

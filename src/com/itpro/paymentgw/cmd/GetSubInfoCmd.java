@@ -15,7 +15,6 @@ public class GetSubInfoCmd extends PaymentGWCmd {
 	public static final int SUBS_TYPE_POSTPAID = 1;
 	
 	public String msisdn;
-	public String rechargeMsisdn;
 	public int transactionId;
 	public Date reqDate;
 	public String token;
@@ -24,11 +23,14 @@ public class GetSubInfoCmd extends PaymentGWCmd {
 	public Date activeDate;
 	public int subType;
 	public int state;
+	public int balance = 0;
+	public String subId = "";
+	public String detail = "";
 	
 	@Override
 	public String getReqString() {
 		// TODO Auto-generated method stub
-		return "GetSubInfoReq: msisdn:"+rechargeMsisdn+
+		return "GetSubInfoReq: msisdn:"+msisdn+
 				"; transactionId:"+transactionId+
 				"; reqDate:"+(new SimpleDateFormat("yyyyMMdd")).format(reqDate)+
 				"; token:"+token;
@@ -38,11 +40,16 @@ public class GetSubInfoCmd extends PaymentGWCmd {
 	@Override
 	public String getRespString() {
 		// TODO Auto-generated method stub
-		return "GetSubInfoResp: msisdn:"+rechargeMsisdn+
+		return "GetSubInfoResp: msisdn:"+msisdn+
 				"; transactionId:"+transactionId+
-				"; activeDate:"+(new SimpleDateFormat("yyyy-MM-dd")).format(activeDate)+
+				"; activeDate:"+activeDate==null?"NULL":(new SimpleDateFormat("yyyy-MM-dd")).format(activeDate)+
 				"; subType:"+subType+
-				"; state:"+state;
+				"; subId:"+subId+
+				"; balance:"+balance+
+				"; state:"+state+
+				"; resultCode:"+resultCode+
+				"; resultString:"+resultString;
+				
 	}
 
 }
