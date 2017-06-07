@@ -3,6 +3,7 @@
  */
 package com.itpro.etopup.main;
 
+import com.itpro.airtimedata.charging.main.Config;
 import com.itpro.cfgreader.CfgReader;
 import com.itpro.log4j.ITProLog4jCategory;
 import com.itpro.util.MainForm;
@@ -34,6 +35,10 @@ public class FadaoETopupService extends MainForm {
 		cfgReader.setGroup("PaymentGW");
 		Config.spID = cfgReader.getString("SpID", "1000117479");
 		Config.spPassword = cfgReader.getString("Password", "FadaoTop@EtlSv");
+		
+		Config.charging_spID=cfgReader.getString("charging_spID", "1000117481");
+        Config.charging_spPassword=cfgReader.getString("charging_spPassword", "fadaoAASS@ADVetl");
+        Config.charging_serviceID=cfgReader.getString("charging_serviceID", "33334");
 		
 		cfgReader.setGroup("CLI");
 		Config.cliListenPort = cfgReader.getInt("ListenPort", 1311);		

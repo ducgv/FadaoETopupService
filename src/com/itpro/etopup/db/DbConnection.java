@@ -131,7 +131,57 @@ public class DbConnection extends MySQLConnection {
 		ps.close();
 		return dealerInfo;
 	}
-
+	   public DealerInfo getDealerInfo(int dealerId) throws SQLException {
+	        // TODO Auto-generated method stub
+	        DealerInfo dealerInfo = null;
+	        PreparedStatement ps=connection.prepareStatement(
+	                "select id, msisdn, pin_code, account_balance from dealers where id = ? ");
+	        ps.setInt(1, dealerId);
+	        ps.execute();
+	        ResultSet rs = ps.getResultSet();
+	        if(rs.next()) {
+	            dealerInfo = new DealerInfo();
+	            dealerInfo.id = rs.getInt(1);
+	            dealerInfo.msisdn = rs.getString(2);
+	            dealerInfo.pin_code = rs.getString(3);
+	            dealerInfo.balance = rs.getInt(4);
+	        }
+	        rs.close();
+	        ps.close();
+	        return dealerInfo;
+	    }
+    public TransactionRecord getTransactionRecord(int id) throws SQLException {
+        // TODO Auto-generated method stub
+        TransactionRecord transactionRecord = null;
+        PreparedStatement ps=connection.prepareStatement(
+                "select id, date_time, type, dealer_msisdn, dealer_id, balance_changed_amount, balance_before, balance_after, "
+                    + "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, status, refund_status, result_description from transactions where id=?");
+        ps.setInt(1, id);
+        ps.execute();
+        ResultSet rs = ps.getResultSet();
+        if(rs.next()) {
+            transactionRecord = new TransactionRecord();
+            transactionRecord.id = rs.getInt("id");
+            transactionRecord.date_time = rs.getTimestamp("date_time");
+            transactionRecord.type = rs.getInt("type");
+            transactionRecord.dealer_msisdn = rs.getString("dealer_msisdn");
+            transactionRecord.dealer_id = rs.getInt("dealer_id");
+            transactionRecord.balance_changed_amount = rs.getInt("balance_changed_amount");
+            transactionRecord.balance_before = rs.getInt("balance_before");
+            transactionRecord.balance_after = rs.getInt("balance_after");
+            transactionRecord.partner_msisdn = rs.getString("partner_msisdn");
+            transactionRecord.partner_id = rs.getInt("partner_id");
+            transactionRecord.partner_balance_before = rs.getInt("partner_balance_before");
+            transactionRecord.partner_balance_after = rs.getInt("partner_balance_after");
+            transactionRecord.status = rs.getInt("status");
+            transactionRecord.refund_status = rs.getInt("refund_status");
+            transactionRecord.result_description = rs.getString("result_description");
+        }
+        rs.close();
+        ps.close();
+        return transactionRecord;
+    }
+    
 	public void updateDealerRequest(DealerRequest dealerRequest) throws SQLException {
 		// TODO Auto-generated method stub
 		String sql = "UPDATE dealer_requests SET status = 2, cmd_type=?, result=?";;

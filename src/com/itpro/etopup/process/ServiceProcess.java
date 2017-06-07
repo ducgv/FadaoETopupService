@@ -10,11 +10,15 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Random;
 import java.util.Vector;
+
+
+
 import com.itpro.etopup.db.DbConnection;
 import com.itpro.etopup.main.Config;
 import com.itpro.etopup.main.GlobalVars;
 import com.itpro.etopup.struct.AddBalanceRate;
 import com.itpro.etopup.struct.AgentRequest;
+import com.itpro.etopup.struct.ChargingCmd;
 import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.MTRecord;
@@ -60,7 +64,7 @@ public class ServiceProcess extends ProcessingThread {
 	public String token = "";
 	public int loginState = 0; //0: not login, 1: loging in, 2: logged in;
 	public Queue queuePaymentGWResp = new Queue();
-	
+	public Queue queueChargingCmdResp = new Queue();
 	public long lastKeepAliveTime = 0;
 	
 	private Vector<DealerRequest> dealerRequests = new Vector<DealerRequest>();
@@ -321,6 +325,9 @@ public class ServiceProcess extends ProcessingThread {
 		case AgentRequest.REQ_TYPE_ADD_BALANCE:
 			OnAddBalance(requestInfo);
 			break;
+		case AgentRequest.REQ_TYPE_REFUND:
+		    onRefund(requestInfo);
+		    break;
 		default:
 			break;
 		}
@@ -551,7 +558,115 @@ public class ServiceProcess extends ProcessingThread {
 			}
 		}
 	}
-
+	public void onRefund(RequestInfo requestInfo){
+	    
+       TransactionRecord old_transactionRecord = null;
+       AgentRequest agentRequest = requestInfo.agentRequest;
+        try {
+            old_transactionRecord = connection.getTransactionRecord(agentRequest.refund_transaction_id);
+            requestInfo.old_transactionRecord=old_transactionRecord;
+            
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            //e.printStackTrace();
+            isConnected = false;
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = MySQLConnection.getSQLExceptionString(e);
+            logError(agentRequest.getRespString());
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            return;
+        }
+        if(old_transactionRecord==null){
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_TRANSACTION_NOT_FOUND";
+            logError(agentRequest.getRespString());
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: transaction not found.");
+            return;
+        }
+        if( old_transactionRecord.status !=TransactionRecord.TRANS_STATUS_SUCCESS){
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_TRANSACTION_NOT_SUCCESS";
+            logError(agentRequest.getRespString());
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: refund for transaction not success.");
+            return;
+        }
+        if( old_transactionRecord.refund_status==TransactionRecord.TRANS_REFUNDED_STATUS){
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_TRANSACTION_REFUNDED";
+            logError(agentRequest.getRespString());
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: refund for transaction refuned.");
+            return;
+        }
+        if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE){
+            // get subinfo
+            // charging
+            //updatestatys
+            onRefundRecharge(requestInfo);
+            
+        }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_BATCH_RECHARGE){
+            
+        }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_MOVE_STOCK){
+            
+        }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_ADD_BALANCE){
+            
+        }
+        
+	}
+	private void onRefundRecharge(RequestInfo requestInfo){
+	    AgentRequest agentRequest=requestInfo.agentRequest;
+	    TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
+	    DealerInfo dealerInfo=null;
+        try {
+            dealerInfo = connection.getDealerInfo(old_transactionRecord.dealer_id);
+        } catch (SQLException e) {
+            isConnected = false;
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = MySQLConnection.getSQLExceptionString(e);
+            logError(agentRequest.getRespString());
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            return;
+        }
+        if(dealerInfo==null){
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_DEALER_NOT_FOUND";
+            logError(agentRequest.getRespString());
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: dealer not found.");
+            return;
+        }
+        TransactionRecord transactionRecord = createTransactionRecord();
+        requestInfo.transactionRecord= requestInfo.transactionRecord;
+        transactionRecord.type = TransactionRecord.TRANS_TYPE_REFUND_RECHARGE;
+        transactionRecord.dealer_msisdn = old_transactionRecord.dealer_msisdn;
+        transactionRecord.dealer_id = old_transactionRecord.dealer_id;
+        transactionRecord.balance_before = dealerInfo.balance;
+        transactionRecord.balance_changed_amount = -1*old_transactionRecord.balance_changed_amount;
+       // transactionRecord.recharge_msidn = old_transactionRecord.recharge_msidn;
+        //transactionRecord.recharge_value = rechargeCmd.amount;
+        transactionRecord.agent = agentRequest.agent_username;
+        transactionRecord.agent_id = agentRequest.agent_id;
+        transactionRecord.cash_value = agentRequest.cash_value;
+        transactionRecord.invoice_code = agentRequest.invoice_code;
+        
+        GetSubInfoCmd getSubInfoCmd = new GetSubInfoCmd();
+        getSubInfoCmd.msisdn = requestInfo.msisdn;
+        getSubInfoCmd.transactionId = getPaymentGWTransactionId();
+        getSubInfoCmd.reqDate = new Date(System.currentTimeMillis());
+        getSubInfoCmd.rechargeMsisdn = old_transactionRecord.recharge_msidn;
+        getSubInfoCmd.token = token;
+        getSubInfoCmd.queueResp = queuePaymentGWResp;
+        logInfo(getSubInfoCmd.getReqString());
+        GlobalVars.paymentGWInterface.queueUserRequest.enqueue(getSubInfoCmd);
+	}
 	private String genRandPinCode() {
 		// TODO Auto-generated method stub
 		Random rand = new Random();
@@ -1055,6 +1170,88 @@ public class ServiceProcess extends ProcessingThread {
 			}
 		}
 	}
+	private void OnRefundGetSubInfoResp(GetSubInfoCmd getSubInfoCmdResp){
+        logInfo(getSubInfoCmdResp.getRespString());
+        RequestInfo requestInfo = listRequestProcessing.get(getSubInfoCmdResp.msisdn);
+        if(requestInfo.old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE){
+            OnRefundRechargeGetSubInfoResp(getSubInfoCmdResp);
+        }
+	    
+	}
+	private void OnRefundRechargeGetSubInfoResp(GetSubInfoCmd getSubInfoCmdResp) {
+        // TODO Auto-generated method stub
+        RequestInfo requestInfo = listRequestProcessing.get(getSubInfoCmdResp.msisdn);
+        AgentRequest agentRequest=requestInfo.agentRequest;
+        TransactionRecord transactionRecord = requestInfo.transactionRecord;
+        if(getSubInfoCmdResp.resultCode==PaymentGWResultCode.RC_GET_SUBS_INFO_SUCCESS){
+            if(getSubInfoCmdResp.subType == GetSubInfoCmd.SUBS_TYPE_PREPAID){
+                int subBalance=5000; 
+                if(subBalance >= Config.MULTIPLIER ){
+                    
+                }else{
+                    transactionRecord.recharge_sub_type = 0;
+                    transactionRecord.balance_after =   transactionRecord.balance_before;
+                    transactionRecord.result_description = "Get SubInfo Failed";
+                    transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+                    insertTransactionRecord(transactionRecord);
+                    
+                    agentRequest.status = AgentRequest.STATUS_FAILED;
+                    agentRequest.result_description = "CONTENT_GETS_SUBINFO_FAILED";
+                    updateAgentRequest(agentRequest);
+                    listRequestProcessing.remove(requestInfo.msisdn);
+                    logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
+                    return;
+                }
+                
+                ChargingCmd chargingCmd = new ChargingCmd();
+                chargingCmd.msisdn=requestInfo.msisdn;
+                chargingCmd.recharge_msidn=requestInfo.old_transactionRecord.recharge_msidn;
+                
+                chargingCmd.transactionID=getPaymentGWTransactionId();
+                chargingCmd.spID=Config.charging_spID;
+                chargingCmd.serviceID=Config.charging_serviceID;
+                chargingCmd.chargeValue=requestInfo.old_transactionRecord.balance_changed_amount;
+                ChargingSession chargingSession = new ChargingSession(chargingCmd, queueChargingCmdResp, logger);
+                chargingSession.start();
+                
+                
+            }
+            else if(getSubInfoCmdResp.subType == GetSubInfoCmd.SUBS_TYPE_POSTPAID){
+
+                agentRequest.balance_add_amount = requestInfo.old_transactionRecord.balance_changed_amount;
+                agentRequest.dealer_id = requestInfo.old_transactionRecord.dealer_id;
+                updateDealer(agentRequest);
+                
+                transactionRecord.recharge_sub_type = GetSubInfoCmd.SUBS_TYPE_POSTPAID;
+
+                transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+                transactionRecord.balance_after = transactionRecord.balance_before+ agentRequest.balance_add_amount ;
+                transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+                transactionRecord.result_description = "Refund recharge postpaid subscriber success";
+                insertTransactionRecord(transactionRecord);
+                
+                agentRequest.status = AgentRequest.STATUS_SUCCESS;
+                agentRequest.result_description = "CONTENT_REFUND_RECHARGE_SUCCESS";
+                updateAgentRequest(agentRequest);
+                listRequestProcessing.remove(requestInfo.msisdn);
+                logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +" success.;");
+            }
+        }
+        else{
+            transactionRecord.recharge_sub_type = 0;
+            transactionRecord.balance_after =   transactionRecord.balance_before;
+            transactionRecord.result_description = "Get SubInfo Failed";
+            transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+            insertTransactionRecord(transactionRecord);
+            
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_GETS_SUBINFO_FAILED";
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
+            return;
+        }
+    }
 	private void updateBatchRechargeElement(BatchRechargeElement batchRechargeElement) {
 		// TODO Auto-generated method stub
 		

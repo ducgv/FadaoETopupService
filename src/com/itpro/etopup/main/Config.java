@@ -36,4 +36,10 @@ public class Config {
 	public static Params[]	ussdMessageContents = new Params[2];
 	public static Params serviceConfigs = new Params();
 	public static Vector<AddBalanceRate> addBalanceRates = null;
+	
+    // charging
+    public static String    charging_spID;
+    public static String    charging_serviceID;
+    public static String    charging_spPassword;
+    public static int       MULTIPLIER=100;
 }

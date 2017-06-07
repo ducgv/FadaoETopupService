@@ -13,4 +13,5 @@ public class RequestInfo {
 	public AgentRequest agentRequest = null;
 	public DealerInfo dealerInfo = null;
 	public TransactionRecord transactionRecord = null;
+	public TransactionRecord old_transactionRecord = null;
 }

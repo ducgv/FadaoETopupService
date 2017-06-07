@@ -20,7 +20,10 @@ public class TransactionRecord {
 	
 	public final static int TRANS_STATUS_SUCCESS = 2;
 	public final static int TRANS_STATUS_FAILED = 3;
-	
+
+    public final static int TRANS_NOT_REFUNDED_STATUS = 0;	
+	public final static int TRANS_REFUNDED_STATUS = 1;
+
 	public int id;
 	public int type;
 	public Timestamp date_time;
@@ -41,6 +44,7 @@ public class TransactionRecord {
 	public long cash_value;
 	public String invoice_code;
 	public int refund_transaction_id;
+	public int refund_status;
 	public int batch_recharge_id;
 	public int status;
 	public String result_description;
