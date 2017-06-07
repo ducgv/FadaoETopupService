@@ -115,7 +115,7 @@ public class PaymentGWSession extends ProcessingThread {
 		logInfo(topupPrepaidCmd.getReqString());
 		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
 		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSTopupPrepaidResult result = service.topupPrepaid(topupPrepaidCmd.msisdn, ""+topupPrepaidCmd.amount, ""+topupPrepaidCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(topupPrepaidCmd.reqDate), topupPrepaidCmd.token);
+		TopupPaymentApiWSTopupPrepaidResult result = service.topupPrepaid(topupPrepaidCmd.rechargeMsisdn, ""+topupPrepaidCmd.amount, ""+topupPrepaidCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(topupPrepaidCmd.reqDate), topupPrepaidCmd.token);
 		topupPrepaidCmd.result = PaymentGWResultCode.R_SUCCESS;
 		topupPrepaidCmd.currentBalance = result.getTargetCurrentBalance().isNil()?0:Integer.parseInt(result.getTargetCurrentBalance().getValue());
 		try {
@@ -145,7 +145,7 @@ public class PaymentGWSession extends ProcessingThread {
 		logInfo(getSubInfoCmd.getReqString());
 		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
 		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSQeuryProfilefoResult result = service.qeuryProfileSubcriber(getSubInfoCmd.msisdn, ""+getSubInfoCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(getSubInfoCmd.reqDate), getSubInfoCmd.token);
+		TopupPaymentApiWSQeuryProfilefoResult result = service.qeuryProfileSubcriber(getSubInfoCmd.rechargeMsisdn, ""+getSubInfoCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(getSubInfoCmd.reqDate), getSubInfoCmd.token);
 		getSubInfoCmd.result = PaymentGWResultCode.R_SUCCESS;
 		getSubInfoCmd.subType = result.getPayType().isNil()?-1:Integer.parseInt(result.getPayType().getValue());
 		try {
@@ -153,7 +153,7 @@ public class PaymentGWSession extends ProcessingThread {
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
-			logError("OnGetSubInfoCmd: Error when parse activeDate field of msisdn "+getSubInfoCmd.msisdn);
+			logError("OnGetSubInfoCmd: Error when parse activeDate field of msisdn "+getSubInfoCmd.rechargeMsisdn);
 			getSubInfoCmd.activeDate = null;
 			getSubInfoCmd.resultCode=-1;
 			getSubInfoCmd.resultString="Wrong ActiveDate field format:"+result.getActiveDate().getValue();
