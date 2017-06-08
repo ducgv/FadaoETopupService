@@ -32,6 +32,7 @@ public class GetSubInfoCmd extends PaymentGWCmd {
 	public String getReqString() {
 		// TODO Auto-generated method stub
 		return "GetSubInfoReq: msisdn:"+msisdn+
+		        "; rechargeMsisdn:"+rechargeMsisdn+
 				"; transactionId:"+transactionId+
 				"; reqDate:"+(new SimpleDateFormat("yyyyMMdd")).format(reqDate)+
 				"; token:"+token;

@@ -157,7 +157,7 @@ public class DbConnection extends MySQLConnection {
         TransactionRecord transactionRecord = null;
         PreparedStatement ps=connection.prepareStatement(
                 "select id, date_time, type, dealer_msisdn, dealer_id, balance_changed_amount, balance_before, balance_after, "
-                    + "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, status, refund_status, result_description from transactions where id=?");
+                    + "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, status, refund_status, result_description,recharge_msidn,recharge_value from transactions where id=?");
         ps.setInt(1, id);
         ps.execute();
         ResultSet rs = ps.getResultSet();
@@ -177,6 +177,8 @@ public class DbConnection extends MySQLConnection {
             transactionRecord.partner_balance_after = rs.getInt("partner_balance_after");
             transactionRecord.status = rs.getInt("status");
             transactionRecord.refund_status = rs.getInt("refund_status");
+            transactionRecord.recharge_msidn= rs.getString("recharge_msidn");
+            transactionRecord.recharge_value= rs.getInt("recharge_value");
             transactionRecord.result_description = rs.getString("result_description");
         }
         rs.close();
@@ -341,6 +343,34 @@ public class DbConnection extends MySQLConnection {
 			ps.execute();
 			ps.close();
 			break;
+		  case TransactionRecord.TRANS_TYPE_REFUND_RECHARGE:
+	            sql = "INSERT INTO transactions"
+	                    + "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
+	                    + "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,cash_value,invoice_code) "
+	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	            ps = connection.prepareStatement(sql);
+	            ps.setInt(1, transactionRecord.id);
+	            ps.setTimestamp(2, transactionRecord.date_time);
+	            ps.setInt(3, transactionRecord.type);
+	            ps.setString(4, transactionRecord.dealer_msisdn);
+	            ps.setInt(5, transactionRecord.dealer_id);
+	            ps.setLong(6, transactionRecord.transaction_amount_req);
+	            ps.setLong(7, transactionRecord.balance_changed_amount);
+	            ps.setLong(8, transactionRecord.balance_before);
+	            ps.setLong(9, transactionRecord.balance_after);
+	            ps.setString(10, transactionRecord.recharge_msidn);
+	            ps.setInt(11, transactionRecord.recharge_value);
+	            ps.setInt(12, transactionRecord.recharge_sub_type);
+	            ps.setInt(13, transactionRecord.status);
+	            ps.setString(14, transactionRecord.result_description);
+
+	            ps.setString(15, transactionRecord.agent);
+	            ps.setInt(16, transactionRecord.agent_id);
+	            ps.setLong(17, transactionRecord.cash_value);
+	            ps.setString(18, transactionRecord.invoice_code);
+	            ps.execute();
+	            ps.close();
+	            break;	
 		}
 		
 	}
