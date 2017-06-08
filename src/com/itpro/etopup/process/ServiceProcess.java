@@ -291,7 +291,10 @@ public class ServiceProcess extends ProcessingThread {
 			}
 
 		}
-		
+        ChargingCmd chargingCmdResp = (ChargingCmd) queueChargingCmdResp.dequeue();
+        if(chargingCmdResp!=null){
+            OnChargingCmdResp(chargingCmdResp);
+        }
 		getDealerRequests();
 		if (!dealerRequests.isEmpty()) {
 			DealerRequest dealerRequest = dealerRequests.remove(0);
@@ -1187,47 +1190,47 @@ public class ServiceProcess extends ProcessingThread {
         TransactionRecord transactionRecord = requestInfo.transactionRecord;
         if(getSubInfoCmdResp.resultCode==PaymentGWResultCode.RC_GET_SUBS_INFO_SUCCESS){
             if(getSubInfoCmdResp.subType == GetSubInfoCmd.SUBS_TYPE_PREPAID){
-                int subBalance=5000; 
+                transactionRecord.recharge_sub_type = GetSubInfoCmd.SUBS_TYPE_PREPAID;
+                int subBalance=getSubInfoCmdResp.balance; 
                 if(subBalance >= Config.MULTIPLIER ){
+                    long chargeValue=requestInfo.old_transactionRecord.balance_changed_amount;
+                    if( chargeValue > subBalance){
+                        chargeValue= (subBalance/Config.MULTIPLIER)*Config.MULTIPLIER;
+                    }
+                    ChargingCmd chargingCmd = new ChargingCmd();
+                    chargingCmd.msisdn=requestInfo.msisdn;
+                    chargingCmd.recharge_msidn=requestInfo.old_transactionRecord.recharge_msidn;
                     
+                    chargingCmd.transactionID=getPaymentGWTransactionId();
+                    chargingCmd.spID=Config.charging_spID;
+                    chargingCmd.serviceID=Config.charging_serviceID;
+                    chargingCmd.chargeValue=chargeValue;
+                    ChargingSession chargingSession = new ChargingSession(chargingCmd, queueChargingCmdResp, logger);
+                    chargingSession.start();
                 }else{
-                    transactionRecord.recharge_sub_type = 0;
                     transactionRecord.balance_after =   transactionRecord.balance_before;
-                    transactionRecord.result_description = "Get SubInfo Failed";
+                    transactionRecord.result_description = "Balance is not enough.";
                     transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
                     insertTransactionRecord(transactionRecord);
                     
                     agentRequest.status = AgentRequest.STATUS_FAILED;
-                    agentRequest.result_description = "CONTENT_GETS_SUBINFO_FAILED";
+                    agentRequest.result_description = "CONTENT_BALANCE_NOT_ENOUGHT";
                     updateAgentRequest(agentRequest);
                     listRequestProcessing.remove(requestInfo.msisdn);
                     logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
                     return;
                 }
-                
-                ChargingCmd chargingCmd = new ChargingCmd();
-                chargingCmd.msisdn=requestInfo.msisdn;
-                chargingCmd.recharge_msidn=requestInfo.old_transactionRecord.recharge_msidn;
-                
-                chargingCmd.transactionID=getPaymentGWTransactionId();
-                chargingCmd.spID=Config.charging_spID;
-                chargingCmd.serviceID=Config.charging_serviceID;
-                chargingCmd.chargeValue=requestInfo.old_transactionRecord.balance_changed_amount;
-                ChargingSession chargingSession = new ChargingSession(chargingCmd, queueChargingCmdResp, logger);
-                chargingSession.start();
-                
-                
             }
             else if(getSubInfoCmdResp.subType == GetSubInfoCmd.SUBS_TYPE_POSTPAID){
-
-                agentRequest.balance_add_amount = requestInfo.old_transactionRecord.balance_changed_amount;
+                long refundAmount=requestInfo.old_transactionRecord.balance_changed_amount;
+                agentRequest.balance_add_amount = refundAmount;
                 agentRequest.dealer_id = requestInfo.old_transactionRecord.dealer_id;
                 updateDealer(agentRequest);
                 
                 transactionRecord.recharge_sub_type = GetSubInfoCmd.SUBS_TYPE_POSTPAID;
 
                 transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
-                transactionRecord.balance_after = transactionRecord.balance_before+ agentRequest.balance_add_amount ;
+                transactionRecord.balance_after = transactionRecord.balance_before+ refundAmount ;
                 transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
                 transactionRecord.result_description = "Refund recharge postpaid subscriber success";
                 insertTransactionRecord(transactionRecord);
@@ -1236,7 +1239,29 @@ public class ServiceProcess extends ProcessingThread {
                 agentRequest.result_description = "CONTENT_REFUND_RECHARGE_SUCCESS";
                 updateAgentRequest(agentRequest);
                 listRequestProcessing.remove(requestInfo.msisdn);
-                logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +" success.;");
+                logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +" success.");
+                
+                String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_RECHARGE_DEALER_NOTIFY")
+                        .replaceAll("<AMOUNT>", ""+refundAmount)
+                        .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn)
+                        .replaceAll("<BALANCE>", ""+  transactionRecord.balance_after)
+                        .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+                String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECHARGE_DEALER_NOTIFY")
+                        .replaceAll("<AMOUNT>", ""+refundAmount)
+                        .replaceAll("<TRANS_ID>", ""+transactionRecord.id)
+                        .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn);
+                sendSms(requestInfo.old_transactionRecord.dealer_msisdn, content, ussdContent, SmsTypes.SMS_TYPE_REFUND_RECHARGE, transactionRecord.id);
+             
+//                String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_RECHARGE_SUBSCRIBER_SUCCESS")
+//                        .replaceAll("<AMOUNT>", ""+refundAmount)
+//                        .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn)
+//                        .replaceAll("<BALANCE>", ""+  transactionRecord.balance_after)
+//                        .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+//                String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECHARGE_SUBSCRIBER_NOTIFY")
+//                        .replaceAll("<AMOUNT>", ""+refundAmount)
+//                        .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn);
+//                sendSms(requestInfo.old_transactionRecord.dealer_msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_REFUND_RECHARGE, transactionRecord.id);
+                
             }
         }
         else{
@@ -1254,6 +1279,92 @@ public class ServiceProcess extends ProcessingThread {
             return;
         }
     }
+	private void OnChargingCmdResp(ChargingCmd chargingCmdResp){
+        logInfo("Charging resp:"+chargingCmdResp.toString());
+        RequestInfo requestInfo = listRequestProcessing.get(chargingCmdResp.msisdn);
+        if(requestInfo.old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE){
+            OnRefundRechargeChargingCmdResp(chargingCmdResp);
+        }
+        
+	}
+    private void OnRefundRechargeChargingCmdResp(ChargingCmd chargingCmdResp) {
+        RequestInfo requestInfo = listRequestProcessing.get(chargingCmdResp.msisdn);
+        AgentRequest agentRequest=requestInfo.agentRequest;
+        TransactionRecord transactionRecord = requestInfo.transactionRecord;
+        if (chargingCmdResp.resultCode == ChargingCmd.RESULT_OK) {
+            agentRequest.balance_add_amount = chargingCmdResp.chargeValue;
+            agentRequest.dealer_id = requestInfo.old_transactionRecord.dealer_id;
+            updateDealer(agentRequest);
+
+            transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+            transactionRecord.balance_after = transactionRecord.balance_before+ chargingCmdResp.chargeValue ;
+            transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+            transactionRecord.result_description = "Refund recharge prepaid subscriber success";
+            insertTransactionRecord(transactionRecord);
+            
+            agentRequest.status = AgentRequest.STATUS_SUCCESS;
+            agentRequest.result_description = "CONTENT_REFUND_RECHARGE_SUCCESS";
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +" success.");
+
+            String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_RECHARGE_DEALER_NOTIFY")
+                    .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
+                    .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn)
+                    .replaceAll("<BALANCE>", ""+  transactionRecord.balance_after)
+                    .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+            String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECHARGE_DEALER_NOTIFY")
+                    .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
+                    .replaceAll("<TRANS_ID>", ""+transactionRecord.id)
+                    .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn);
+            sendSms(requestInfo.old_transactionRecord.dealer_msisdn, content, ussdContent, SmsTypes.SMS_TYPE_REFUND_RECHARGE, transactionRecord.id);
+         
+            String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_RECHARGE_SUBSCRIBER_SUCCESS")
+                    .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
+                    .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn)
+                    .replaceAll("<BALANCE>", ""+  transactionRecord.balance_after)
+                    .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+            String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECHARGE_SUBSCRIBER_NOTIFY")
+                    .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
+                    .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn);
+            sendSms(requestInfo.old_transactionRecord.dealer_msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_REFUND_RECHARGE, transactionRecord.id);
+            
+            try {
+                connection.insertRefundCDRRecord(chargingCmdResp.recharge_msidn, chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 2, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
+            }catch (SQLException e) {
+                isConnected = false;
+                logError(MySQLConnection.getSQLExceptionString(e));
+            } catch (Exception e) {
+                e.printStackTrace();
+                logError(e.getMessage());
+            }
+        }else{
+            transactionRecord.recharge_sub_type = 0;
+            transactionRecord.balance_after =   transactionRecord.balance_before;
+            transactionRecord.result_description = chargingCmdResp.resultCode+"|"+chargingCmdResp.resultString;
+            transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+            insertTransactionRecord(transactionRecord);
+            
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_CHARGING_FAILED";
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refun transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: charging failed");
+            
+            try {
+                connection.insertRefundCDRRecord(chargingCmdResp.recharge_msidn, chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 3, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
+            }catch (SQLException e) {
+                isConnected = false;
+                logError(MySQLConnection.getSQLExceptionString(e));
+            } catch (Exception e) {
+                e.printStackTrace();
+                logError(e.getMessage());
+            }
+            
+            return;
+        }
+    }
+	
 	private void updateBatchRechargeElement(BatchRechargeElement batchRechargeElement) {
 		// TODO Auto-generated method stub
 		

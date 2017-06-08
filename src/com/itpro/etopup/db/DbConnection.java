@@ -7,6 +7,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Vector;
+
+import com.itpro.etopup.main.Config;
 import com.itpro.etopup.struct.AddBalanceRate;
 import com.itpro.etopup.struct.AgentRequest;
 import com.itpro.etopup.struct.CDRRecord;
@@ -584,7 +586,25 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		
 	}
-	
+
+    public void insertRefundCDRRecord(String msisdn,long charge_value,int result_code,String result_string,int status,int transactionID, String spID,String serviceID, int transactionRecordId) throws SQLException {
+        // TODO Auto-generated method stub
+        PreparedStatement ps = null;
+        String sql = "INSERT `refund_cdr`(`date_time`,`msisdn`,`charge_value`,`result_code`,`result_string`,`status`,`transactionID`,`spID`,`serviceID`,`transactionRecordId`)"
+                + " VALUES (now(),?,?,?,?,?,?,?,?,?)";
+        ps = connection.prepareStatement(sql);
+        ps.setString(1, msisdn);
+        ps.setLong(2, charge_value);
+        ps.setInt(3, result_code);
+        ps.setString(4, result_string);
+        ps.setInt(5, status);
+        ps.setInt(6, transactionID);
+        ps.setString(7, spID);
+        ps.setString(8, serviceID);
+        ps.setInt(9, transactionRecordId);
+        ps.execute();
+        ps.close();
+    }
 	public void insertCDRRecord(CDRRecord cdrRecord) throws SQLException {
 		// TODO Auto-generated method stub
 		PreparedStatement ps = null;
