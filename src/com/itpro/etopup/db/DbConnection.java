@@ -346,8 +346,8 @@ public class DbConnection extends MySQLConnection {
 		  case TransactionRecord.TRANS_TYPE_REFUND_RECHARGE:
 	            sql = "INSERT INTO transactions"
 	                    + "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-	                    + "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,cash_value,invoice_code) "
-	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	                    + "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,cash_value,invoice_code,refund_transaction_id) "
+	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	            ps = connection.prepareStatement(sql);
 	            ps.setInt(1, transactionRecord.id);
 	            ps.setTimestamp(2, transactionRecord.date_time);
@@ -368,13 +368,22 @@ public class DbConnection extends MySQLConnection {
 	            ps.setInt(16, transactionRecord.agent_id);
 	            ps.setLong(17, transactionRecord.cash_value);
 	            ps.setString(18, transactionRecord.invoice_code);
+	            ps.setInt(19, transactionRecord.refund_transaction_id);
 	            ps.execute();
 	            ps.close();
 	            break;	
 		}
 		
 	}
-
+    public void updateTransactionRecord(TransactionRecord transactionRecord) throws SQLException {
+        // TODO Auto-generated method stub
+        PreparedStatement ps = null;        
+        ps=connection.prepareStatement("UPDATE `transactions` SET `refund_status`=? WHERE id=?");
+        ps.setInt(1, transactionRecord.refund_status);
+        ps.setInt(2, transactionRecord.id);
+        ps.execute();
+        ps.close();
+    }
 	public void deductBalance(RechargeCmd rechargeCmd) throws SQLException {
 		// TODO Auto-generated method stub
 		String sql = "{call deduct_balance (?, ?, ?, ?)}";
