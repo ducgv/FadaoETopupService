@@ -1349,7 +1349,7 @@ public class ServiceProcess extends ProcessingThread {
             transactionRecord.result_description = "Batch recharge success.";
             transactionRecord.balance_after = batchRechargeCmd.lastBalanceAfter;
 
-            dealerRequest.result = "CONTENT_BATCH_RECHARGE_FAIL";
+            dealerRequest.result = "CONTENT_BATCH_RECHARGE_SUCCESS";
 
             batchRechargeCmd.resultCode = RequestCmd.R_OK;
             batchRechargeCmd.resultString = transactionRecord.result_description;
