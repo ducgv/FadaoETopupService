@@ -632,7 +632,7 @@ public class ServiceProcess extends ProcessingThread {
         requestInfo.dealerInfo=dealerInfo;
         TransactionRecord transactionRecord = createTransactionRecord();
         requestInfo.transactionRecord= transactionRecord;
-        transactionRecord.type = TransactionRecord.TRANS_TYPE_REFUND_RECHARGE;
+
         transactionRecord.dealer_msisdn = old_transactionRecord.dealer_msisdn;
         transactionRecord.dealer_id = old_transactionRecord.dealer_id;
         transactionRecord.balance_before = dealerInfo.balance;
@@ -647,8 +647,10 @@ public class ServiceProcess extends ProcessingThread {
         agentRequest.transaction_id=transactionRecord.id;
         
         if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE){
+            transactionRecord.type = TransactionRecord.TRANS_TYPE_REFUND_RECHARGE;
             onRefundRecharge(requestInfo);
         }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_BATCH_RECHARGE){
+            transactionRecord.type = TransactionRecord.TRANS_TYPE_REFUND_RECHARGE;
             onRefundBatchRecharge(requestInfo);
         }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_MOVE_STOCK){
             
@@ -673,6 +675,7 @@ public class ServiceProcess extends ProcessingThread {
 	}
 	private void onRefundRecharge(RequestInfo requestInfo){
 	    TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
+	    logInfo("On refund batch recharge for agentRequest: id="+requestInfo.agentRequest.id+ ", TransactionRecord: id="+old_transactionRecord.id+", dealder_msisdn="+old_transactionRecord.dealer_msisdn);
 	    requestInfo.transactionRecord.transaction_amount_req=requestInfo.old_transactionRecord.recharge_value;
         GetSubInfoCmd getSubInfoCmd = new GetSubInfoCmd();
         getSubInfoCmd.msisdn = requestInfo.msisdn;
@@ -686,18 +689,19 @@ public class ServiceProcess extends ProcessingThread {
 	}
 
     private void onRefundBatchRecharge(RequestInfo requestInfo) {
+       
         AgentRequest agentRequest=requestInfo.agentRequest;
         TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
         TransactionRecord transactionRecord=requestInfo.transactionRecord;
-        transactionRecord.transaction_amount_req=requestInfo.old_transactionRecord.balance_changed_amount;
-        
+        transactionRecord.transaction_amount_req= Math.abs(requestInfo.old_transactionRecord.balance_changed_amount);
+        logInfo("On refund batch recharge for agentRequest: id="+agentRequest.id+ ", TransactionRecord: id="+old_transactionRecord.id+", dealder_msisdn="+old_transactionRecord.dealer_msisdn);
         BatchRechargeCmd batchRechargeCmd = new BatchRechargeCmd();
         batchRechargeCmd.msisdn = old_transactionRecord.dealer_msisdn;
         batchRechargeCmd.batch_recharge_id =old_transactionRecord.batch_recharge_id;
         requestInfo.dealerRequest=new DealerRequest();// create new DealerRequest to store batchRechargeCmd.
         requestInfo.dealerRequest.requestCmd=batchRechargeCmd;
         try {
-            batchRechargeCmd.batchRechargeElements = connection.getBatchRechargeElementList(batchRechargeCmd.batch_recharge_id);
+            batchRechargeCmd.batchRechargeElements = connection.getRefundBatchRechargeElementList(batchRechargeCmd.batch_recharge_id);
         } catch (SQLException e) {
             isConnected = false;
             logError(MySQLConnection.getSQLExceptionString(e));
@@ -1381,10 +1385,9 @@ public class ServiceProcess extends ProcessingThread {
 	private void OnRefundBatchRechargeGetSubInfoResp(GetSubInfoCmd getSubInfoCmdResp) {
         // TODO Auto-generated method stub
         RequestInfo requestInfo = listRequestProcessing.get(getSubInfoCmdResp.msisdn);
-        AgentRequest agentRequest=requestInfo.agentRequest;
-        TransactionRecord transactionRecord = requestInfo.transactionRecord;
         BatchRechargeCmd batchRechargeCmd=(BatchRechargeCmd)requestInfo.dealerRequest.requestCmd;// get back batch recharge cmd
         BatchRechargeElement batchRechargeElement = batchRechargeCmd.currentBatchRechargeElement;
+        
         if(getSubInfoCmdResp.resultCode==PaymentGWResultCode.RC_GET_SUBS_INFO_SUCCESS){
             if(getSubInfoCmdResp.subType == GetSubInfoCmd.SUBS_TYPE_PREPAID){
                 int subBalance=getSubInfoCmdResp.balance; 
@@ -1406,9 +1409,9 @@ public class ServiceProcess extends ProcessingThread {
                 }else{
                     logInfo("Balance is not enough for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
                     batchRechargeCmd.recharge_failed++;
-                    batchRechargeElement.status=BatchRechargeElement.STATUS_FAILED;
-                    batchRechargeElement.result_code = getSubInfoCmdResp.resultCode;
-                    batchRechargeElement.result_string = "Balance is not enough.";
+                    batchRechargeElement.refund_status=BatchRechargeElement.STATUS_FAILED;
+                    batchRechargeElement.refund_result_code = getSubInfoCmdResp.resultCode;
+                    batchRechargeElement.refund_result_string = "Balance is not enough.";
                     updateBatchRechargeElement(batchRechargeElement); // @NOTE
                     if(batchRechargeCmd.batchRechargeElements.isEmpty()){
                         onRefundBatchRechargeDone(requestInfo);
@@ -1424,9 +1427,9 @@ public class ServiceProcess extends ProcessingThread {
 
                 batchRechargeCmd.recharge_success++;
                 batchRechargeCmd.recharge_success_amount+=batchRechargeElement.recharge_value;
-                batchRechargeElement.status=BatchRechargeElement.STATUS_SUCCESS;
-                batchRechargeElement.result_code = getSubInfoCmdResp.resultCode;
-                batchRechargeElement.result_string = getSubInfoCmdResp.resultString;
+                batchRechargeElement.refund_status=BatchRechargeElement.STATUS_SUCCESS;
+                batchRechargeElement.refund_result_code = getSubInfoCmdResp.resultCode;
+                batchRechargeElement.refund_result_string = getSubInfoCmdResp.resultString;
                 
                 updateBatchRechargeElement(batchRechargeElement); // @NOTE
                 if(batchRechargeCmd.batchRechargeElements.isEmpty()){
@@ -1440,9 +1443,9 @@ public class ServiceProcess extends ProcessingThread {
         else{
             logInfo("Get subInfo failed for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
             batchRechargeCmd.recharge_failed++;
-            batchRechargeElement.status=BatchRechargeElement.STATUS_FAILED;
-            batchRechargeElement.result_code = getSubInfoCmdResp.resultCode;
-            batchRechargeElement.result_string = getSubInfoCmdResp.resultString;
+            batchRechargeElement.refund_status=BatchRechargeElement.STATUS_FAILED;
+            batchRechargeElement.refund_result_code = getSubInfoCmdResp.resultCode;
+            batchRechargeElement.refund_result_string = getSubInfoCmdResp.resultString;
             updateBatchRechargeElement(batchRechargeElement); // @NOTE
             if(batchRechargeCmd.batchRechargeElements.isEmpty()){
                 onRefundBatchRechargeDone(requestInfo);
@@ -1465,7 +1468,7 @@ public class ServiceProcess extends ProcessingThread {
             agentRequest.result_description = "CONTENT_REFUND_BATCH_RECHARGE_FAIL";
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; Refund batch recharge fail. "+batchRechargeCmd.getRespString());
         }else{
-            long refundAmount=batchRechargeCmd.recharge_success;
+            long refundAmount=batchRechargeCmd.recharge_success_amount;
             agentRequest.balance_add_amount = refundAmount;
             agentRequest.dealer_id = requestInfo.old_transactionRecord.dealer_id;
             updateDealer(agentRequest);
@@ -1496,7 +1499,7 @@ public class ServiceProcess extends ProcessingThread {
                 logError(e.getMessage());
             }
         }
-        
+        transactionRecord.balance_changed_amount=batchRechargeCmd.recharge_success_amount;
         transactionRecord.balance_after =  transactionRecord.balance_before+batchRechargeCmd.recharge_success_amount;
         transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
         insertTransactionRecord(transactionRecord);       
@@ -1608,13 +1611,13 @@ public class ServiceProcess extends ProcessingThread {
             logInfo("Get charging success for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
             batchRechargeCmd.recharge_success++;
             batchRechargeCmd.recharge_success_amount+=chargingCmdResp.chargeValue;
-            batchRechargeElement.status=BatchRechargeElement.STATUS_SUCCESS;
-            batchRechargeElement.result_code = chargingCmdResp.resultCode;
-            batchRechargeElement.result_string = chargingCmdResp.resultString;
+            batchRechargeElement.refund_status=BatchRechargeElement.STATUS_SUCCESS;
+            batchRechargeElement.refund_result_code = chargingCmdResp.resultCode;
+            batchRechargeElement.refund_result_string = chargingCmdResp.resultString;
             updateBatchRechargeElement(batchRechargeElement); // @NOTE
             
 
-            String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_BATCH_REFUND_RECHARGE_SUBSCRIBER_NOTIFY")
+            String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_BATCH_RECHARGE_SUBSCRIBER_NOTIFY")
                     .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
                     .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn)
                     .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
@@ -1642,9 +1645,9 @@ public class ServiceProcess extends ProcessingThread {
             
             logInfo("Get charging failed for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
             batchRechargeCmd.recharge_failed++;
-            batchRechargeElement.status=BatchRechargeElement.STATUS_FAILED;
-            batchRechargeElement.result_code = chargingCmdResp.resultCode;
-            batchRechargeElement.result_string = chargingCmdResp.resultString;
+            batchRechargeElement.refund_status=BatchRechargeElement.STATUS_FAILED;
+            batchRechargeElement.refund_result_code = chargingCmdResp.resultCode;
+            batchRechargeElement.refund_result_string = chargingCmdResp.resultString;
             updateBatchRechargeElement(batchRechargeElement); // @NOTE
             if(batchRechargeCmd.batchRechargeElements.isEmpty()){
                 onRefundBatchRechargeDone(requestInfo);
@@ -1657,7 +1660,8 @@ public class ServiceProcess extends ProcessingThread {
     }
 	private void updateBatchRechargeElement(BatchRechargeElement batchRechargeElement) {
 		// TODO Auto-generated method stub
-		
+	    logInfo("Update for "+batchRechargeElement.toString());
+	    GlobalVars.updateBatchRechargeElementProcess.queueBatchRechargeElement.enqueue(batchRechargeElement);
 	}
 
 	private void insertRechargeCdrRecord(RechargeCdrRecord rechargeCdrRecord) {

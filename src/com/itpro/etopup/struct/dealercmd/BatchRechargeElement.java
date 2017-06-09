@@ -18,4 +18,23 @@ public class BatchRechargeElement {
 	public int result_code;
 	public String result_string;
 	public int batch_recharge_id;
+	
+	public int refund_status;
+	public int refund_result_code;
+	public String refund_result_string;
+	
+    public String toString(){
+        return "BatchRechargeElement: id:"+id+
+                "; dealer_id:"+dealer_id+
+                "; dealer_msisdn:"+dealer_msisdn+
+                "; recharge_msisdn:"+recharge_msisdn+
+                "; recharge_value:"+recharge_value+
+                "; status:"+status+
+                "; result_code:"+result_code+
+                "; result_string:"+result_string+
+                "; batch_recharge_id:"+batch_recharge_id+
+                "; refund_status:"+refund_status+
+                "; refund_result_code:"+refund_result_code+
+                "; refund_result_string:"+refund_result_string;
+    }
 }

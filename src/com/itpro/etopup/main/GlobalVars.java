@@ -8,6 +8,7 @@ import com.itpro.etopup.process.ServiceProcess;
 import com.itpro.etopup.process.InsertSmsMTReqProcess;
 import com.itpro.etopup.process.InsertTransactionRecordProcess;
 import com.itpro.etopup.process.InsertUssdNotifyReqProcess;
+import com.itpro.etopup.process.UpdateBatchRechargeElementProcess;
 import com.itpro.paymentgw.PaymentGWInterface;
 
 /**
@@ -22,4 +23,5 @@ public class GlobalVars {
 	public static InsertSmsMTReqProcess insertSmsMTReqProcess = new InsertSmsMTReqProcess();
 	public static InsertUssdNotifyReqProcess insertUssdNotifyReqProcess = new InsertUssdNotifyReqProcess();
 	public static InsertTransactionRecordProcess insertTransactionRecordProcess = new InsertTransactionRecordProcess();
+	public static UpdateBatchRechargeElementProcess updateBatchRechargeElementProcess=new UpdateBatchRechargeElementProcess();
 }

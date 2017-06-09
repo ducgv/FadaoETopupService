@@ -89,6 +89,10 @@ public class FadaoETopupService extends MainForm {
 		GlobalVars.insertTransactionRecordProcess.setLogPrefix("[Transaction] ");
 		GlobalVars.insertTransactionRecordProcess.setLogger(logger);
 		GlobalVars.insertTransactionRecordProcess.start();
+		
+        GlobalVars.updateBatchRechargeElementProcess.setLogPrefix("[UpdateBatchRechargeElement] ");
+        GlobalVars.updateBatchRechargeElementProcess.setLogger(logger);
+        GlobalVars.updateBatchRechargeElementProcess.start();
 	}
 
 	/**

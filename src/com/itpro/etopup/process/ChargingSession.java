@@ -54,7 +54,7 @@ public class ChargingSession extends ProcessingThread {
 		// TODO Auto-generated method stub
 		logInfo("Req "+chargingCmd);
 		
-		String cmd = "/opt/itpro/airTime/airTimeCharging/scripts/chargeFee.php "
+		String cmd = "/opt/itpro/eTopup/scripts/chargeFee.php "
 		        +Config.charging_spID+" "+ Config.charging_spPassword+" "+ Config.charging_serviceID+" "
 		        + chargingCmd.recharge_msidn + " "+ chargingCmd.chargeValue+" "+chargingCmd.transactionID;
 
