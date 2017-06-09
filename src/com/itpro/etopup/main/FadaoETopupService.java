@@ -27,18 +27,18 @@ public class FadaoETopupService extends MainForm {
 		cfgReader.load(file,";");		
 
 		cfgReader.setGroup("DB");
-		Config.dbServerName = cfgReader.getString("ServerIpAddr", "10.10.1.58");
-		Config.dbDatabaseName = cfgReader.getString("DbName", "etopup");
-		Config.dbUserName = cfgReader.getString("UserName", "etopup");;
-		Config.dbPassword = cfgReader.getString("Password", "etopup!@#itpro2017");
+		Config.dbServerName = cfgReader.getString("ServerIpAddr", "ServerIpAddr");
+		Config.dbDatabaseName = cfgReader.getString("DbName", "DbName");
+		Config.dbUserName = cfgReader.getString("UserName", "UserName");;
+		Config.dbPassword = cfgReader.getString("Password", "Password");
 		
 		cfgReader.setGroup("PaymentGW");
-		Config.spID = cfgReader.getString("SpID", "1000117479");
-		Config.spPassword = cfgReader.getString("Password", "FadaoTop@EtlSv");
+		Config.spID = cfgReader.getString("SpID", "SpID");
+		Config.spPassword = cfgReader.getString("Password", "Password");
 		
-		Config.charging_spID=cfgReader.getString("charging_spID", "1000117481");
-        Config.charging_spPassword=cfgReader.getString("charging_spPassword", "fadaoAASS@ADVetl");
-        Config.charging_serviceID=cfgReader.getString("charging_serviceID", "33334");
+		Config.charging_spID=cfgReader.getString("charging_spID", "charging_spID");
+        Config.charging_spPassword=cfgReader.getString("charging_spPassword", "charging_spPassword");
+        Config.charging_serviceID=cfgReader.getString("charging_serviceID", "charging_serviceID");
 		
 		cfgReader.setGroup("CLI");
 		Config.cliListenPort = cfgReader.getInt("ListenPort", 1311);		
