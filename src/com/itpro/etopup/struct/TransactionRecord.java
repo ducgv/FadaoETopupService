@@ -50,4 +50,7 @@ public class TransactionRecord {
 	public int batch_recharge_id;
 	public int status;
 	public String result_description;
+	public int batch_recharge_succes;
+	public int batch_recharge_fail;
+	
 }

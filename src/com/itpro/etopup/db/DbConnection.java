@@ -16,6 +16,7 @@ import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.MTRecord;
 import com.itpro.etopup.struct.TransactionRecord;
+import com.itpro.etopup.struct.dealercmd.BatchRechargeCmd;
 import com.itpro.etopup.struct.dealercmd.BatchRechargeElement;
 import com.itpro.etopup.struct.dealercmd.ChangePinCmd;
 import com.itpro.etopup.struct.dealercmd.MoveStockCmd;
@@ -296,6 +297,32 @@ public class DbConnection extends MySQLConnection {
 			ps.execute();
 			ps.close();
 			break;
+	    case TransactionRecord.TRANS_TYPE_BATCH_RECHARGE:
+            sql = "INSERT INTO transactions"
+                    + "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
+                    + "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,`batch_recharge_id`,`batch_recharge_succes`,`batch_recharge_fail`) "
+                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            ps = connection.prepareStatement(sql);
+            ps.setInt(1, transactionRecord.id);
+            ps.setTimestamp(2, transactionRecord.date_time);
+            ps.setInt(3, transactionRecord.type);
+            ps.setString(4, transactionRecord.dealer_msisdn);
+            ps.setInt(5, transactionRecord.dealer_id);
+            ps.setLong(6, transactionRecord.transaction_amount_req);
+            ps.setLong(7, transactionRecord.balance_changed_amount);
+            ps.setLong(8, transactionRecord.balance_before);
+            ps.setLong(9, transactionRecord.balance_after);
+            ps.setString(10, transactionRecord.recharge_msidn);
+            ps.setInt(11, transactionRecord.recharge_value);
+            ps.setInt(12, transactionRecord.recharge_sub_type);
+            ps.setInt(13, transactionRecord.status);
+            ps.setString(14, transactionRecord.result_description);
+            ps.setInt(15, transactionRecord.batch_recharge_id);
+            ps.setInt(16, transactionRecord.batch_recharge_succes);
+            ps.setInt(17, transactionRecord.batch_recharge_fail);
+            ps.execute();
+            ps.close();
+            break;
 		case TransactionRecord.TRANS_TYPE_CREATE_ACCOUNT:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
@@ -399,7 +426,20 @@ public class DbConnection extends MySQLConnection {
 		rechargeCmd.balanceAfter = stmt.getInt(4);
 		stmt.close();
 	}
-
+    public void deductBalance(BatchRechargeElement batchRechargeElement) throws SQLException {
+        // TODO Auto-generated method stub
+        String sql = "{call deduct_balance (?, ?, ?, ?)}";
+        CallableStatement stmt = null;
+        stmt = connection.prepareCall(sql);
+        stmt.setInt(1, batchRechargeElement.dealer_id);
+        stmt.setInt(2, batchRechargeElement.recharge_value);
+        stmt.registerOutParameter(3, java.sql.Types.INTEGER);
+        stmt.registerOutParameter(4, java.sql.Types.INTEGER);
+        stmt.execute();
+        batchRechargeElement.db_return_code = stmt.getInt(3);
+        batchRechargeElement.balanceAfter = stmt.getInt(4);
+        stmt.close();
+    }
 	public void insertUssdNotifyRecord(MTRecord mtRecord) throws SQLException {
 		// TODO Auto-generated method stub
 		PreparedStatement ps = null;		
@@ -670,10 +710,7 @@ public class DbConnection extends MySQLConnection {
         ps.execute();
         ps.close();
     }
-	public void deductBalance(BatchRechargeElement batchRechargeElement) throws SQLException{
-		// TODO Auto-generated method stub
-		
-	}
+
 
     public void insertRefundCDRRecord(String msisdn,long charge_value,int result_code,String result_string,int status,int transactionID, String spID,String serviceID, int transactionRecordId) throws SQLException {
         // TODO Auto-generated method stub

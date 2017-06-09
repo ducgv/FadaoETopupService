@@ -27,6 +27,7 @@ public class BatchRechargeCmd extends RequestCmd {
 	public int recharge_success = 0;
 	public int recharge_success_amount = 0;
 	public int recharge_failed = 0;
+	public long lastBalanceAfter = 0;
 	public BatchRechargeElement currentBatchRechargeElement = null;
 	public int checkInfo(DealerInfo dealerInfo){
 		boolean isDealerInfoNotMatched = false;

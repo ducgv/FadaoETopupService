@@ -68,6 +68,7 @@ public class DealerRequest {
 				BatchRechargeCmd batchRechargeCmd = new BatchRechargeCmd();
 				batchRechargeCmd.msisdn = msisdn;
 				batchRechargeCmd.batch_recharge_id = Integer.parseInt(cmd_params[1]);
+				requestCmd=batchRechargeCmd;
 			}
 			else{
 				cmd_type = CMD_TYPE_WRONG_SYNTAX;
