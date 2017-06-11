@@ -534,7 +534,7 @@ public class DbConnection extends MySQLConnection {
 		PreparedStatement ps=connection.prepareStatement(
 				"SELECT id, req_type, req_date, agent_username, agent_id, dealer_msisdn, dealer_name, dealer_id_card_number, "
 				+ "dealer_birthdate, dealer_address, cash_value, invoice_code, "
-				+ "refund_transaction_id FROM agent_requests WHERE status = 0");
+				+ "refund_transaction_id,refund_msisdn,refund_amount,web_password FROM agent_requests WHERE status = 0");
 		ps.setMaxRows(30);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -573,6 +573,8 @@ public class DbConnection extends MySQLConnection {
 			agentRequest.cash_value = rs.getInt("cash_value");
 			agentRequest.invoice_code = rs.getString("invoice_code");
 			agentRequest.refund_transaction_id = rs.getInt("refund_transaction_id");
+			agentRequest.refund_msisdn=rs.getString("refund_msisdn");
+			agentRequest.refund_amount=rs.getInt("refund_amount");
 			agentRequest.status = 0;
 			agentRequest.web_password=rs.getString("web_password");
 			agentRequests.add(agentRequest);
@@ -756,6 +758,36 @@ public class DbConnection extends MySQLConnection {
             ps.close();
         }           
         return batchRechargeElements;
+    }
+    public  BatchRechargeElement getRefundBatchRechargeElement(int batchRechargeId,String recharge_msisdn) throws SQLException {
+        // TODO Auto-generated method stub
+        BatchRechargeElement batchRechargeElement =null;
+        PreparedStatement ps=connection.prepareStatement(
+                "SELECT id, dealer_id, dealer_msisdn, recharge_msisdn, recharge_value,status,result_code,result_string FROM batch_recharge WHERE batch_recharge_id = ? AND recharge_msisdn=? AND `refund_status` = 0");
+        ps.setInt(1, batchRechargeId);
+        ps.execute();
+        ResultSet rs = ps.getResultSet();
+        if(rs.next()) {
+            batchRechargeElement = new BatchRechargeElement();
+            batchRechargeElement.id = rs.getInt("id");
+            batchRechargeElement.dealer_id = rs.getInt("dealer_id");
+            batchRechargeElement.dealer_msisdn = rs.getString("dealer_msisdn");
+            batchRechargeElement.recharge_msisdn = rs.getString("recharge_msisdn");
+            batchRechargeElement.recharge_value = rs.getInt("recharge_value");
+            batchRechargeElement.batch_recharge_id = batchRechargeId;
+            batchRechargeElement.status = rs.getInt("status");
+            batchRechargeElement.result_code= rs.getInt("result_code");
+            batchRechargeElement.result_string= rs.getString("result_string");
+        }
+        rs.close();
+        ps.close();
+        if(batchRechargeElement!=null){
+            ps=connection.prepareStatement("UPDATE batch_recharge SET refund_status = 1 WHERE id = ?");                
+            ps.setInt(1, batchRechargeElement.id);
+            ps.execute();
+            ps.close();
+        }           
+        return batchRechargeElement;
     }
     public void updateBatchRechargeElement(BatchRechargeElement batchRechargeElement) throws SQLException {
         // TODO Auto-generated method stub

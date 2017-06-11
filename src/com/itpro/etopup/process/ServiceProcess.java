@@ -591,7 +591,7 @@ public class ServiceProcess extends ProcessingThread {
 					
 					// send web user:
 					String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
-                            .replaceAll("<DEALER>", agentRequest.dealer_msisdn)
+                            .replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
                             .replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
 			       MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
 			       GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
@@ -669,6 +669,15 @@ public class ServiceProcess extends ProcessingThread {
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: refund for transaction refuned.");
             return;
         }
+        if( agentRequest.refund_amount > Math.abs(old_transactionRecord.balance_changed_amount)){
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_REFUND_AMOUNT_GREATER_THAN_TRANSACTION_AMOUNT";
+            logError(agentRequest.getRespString());
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: refund amount is greater than balance_changed_amount.");
+            return;
+        }
         DealerInfo dealerInfo=null;
         try {
             dealerInfo = connection.getDealerInfo(old_transactionRecord.dealer_id);
@@ -697,6 +706,7 @@ public class ServiceProcess extends ProcessingThread {
         transactionRecord.dealer_msisdn = old_transactionRecord.dealer_msisdn;
         transactionRecord.dealer_id = old_transactionRecord.dealer_id;
         transactionRecord.balance_before = dealerInfo.balance;
+        transactionRecord.recharge_msidn= requestInfo.old_transactionRecord.recharge_msidn;
        // transactionRecord.balance_changed_amount = -1*old_transactionRecord.balance_changed_amount;
        // transactionRecord.recharge_msidn = old_transactionRecord.recharge_msidn;
         //transactionRecord.recharge_value = rechargeCmd.amount;
@@ -705,6 +715,7 @@ public class ServiceProcess extends ProcessingThread {
         transactionRecord.cash_value = agentRequest.cash_value;
         transactionRecord.invoice_code = agentRequest.invoice_code;
         transactionRecord.refund_transaction_id=old_transactionRecord.id;
+        transactionRecord.transaction_amount_req=agentRequest.refund_amount;
         agentRequest.transaction_id=transactionRecord.id;
         
         if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE){
@@ -720,7 +731,7 @@ public class ServiceProcess extends ProcessingThread {
             transactionRecord.type = TransactionRecord.TRANS_TYPE_REFUND_ADD_BALANCE;
             onRefundAddBalance(requestInfo);
         }else{
-            transactionRecord.transaction_amount_req=Math.abs(old_transactionRecord.balance_changed_amount);
+           
             transactionRecord.recharge_sub_type = 0;
             transactionRecord.balance_after =   transactionRecord.balance_before;
             transactionRecord.result_description = "Refund transaction have to be recharge|move stock|add balance";
@@ -740,7 +751,6 @@ public class ServiceProcess extends ProcessingThread {
 	private void onRefundRecharge(RequestInfo requestInfo){
 	    TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
 	    logInfo("On refund batch recharge for agentRequest: id="+requestInfo.agentRequest.id+ ", TransactionRecord: id="+old_transactionRecord.id+", dealder_msisdn="+old_transactionRecord.dealer_msisdn);
-	    requestInfo.transactionRecord.transaction_amount_req=requestInfo.old_transactionRecord.recharge_value;
         GetSubInfoCmd getSubInfoCmd = new GetSubInfoCmd();
         getSubInfoCmd.msisdn = requestInfo.msisdn;
         getSubInfoCmd.rechargeMsisdn=old_transactionRecord.recharge_msidn;
@@ -757,15 +767,10 @@ public class ServiceProcess extends ProcessingThread {
         AgentRequest agentRequest=requestInfo.agentRequest;
         TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
         TransactionRecord transactionRecord=requestInfo.transactionRecord;
-        transactionRecord.transaction_amount_req= Math.abs(requestInfo.old_transactionRecord.balance_changed_amount);
         logInfo("On refund batch recharge for agentRequest: id="+agentRequest.id+ ", TransactionRecord: id="+old_transactionRecord.id+", dealder_msisdn="+old_transactionRecord.dealer_msisdn);
-        BatchRechargeCmd batchRechargeCmd = new BatchRechargeCmd();
-        batchRechargeCmd.msisdn = old_transactionRecord.dealer_msisdn;
-        batchRechargeCmd.batch_recharge_id =old_transactionRecord.batch_recharge_id;
-        requestInfo.dealerRequest=new DealerRequest();// create new DealerRequest to store batchRechargeCmd.
-        requestInfo.dealerRequest.requestCmd=batchRechargeCmd;
+        BatchRechargeElement batchRechargeElement=null;
         try {
-            batchRechargeCmd.batchRechargeElements = connection.getRefundBatchRechargeElementList(batchRechargeCmd.batch_recharge_id);
+            batchRechargeElement= connection.getRefundBatchRechargeElement(old_transactionRecord.batch_recharge_id,agentRequest.refund_msisdn);
         } catch (SQLException e) {
             isConnected = false;
             logError(MySQLConnection.getSQLExceptionString(e));
@@ -783,34 +788,31 @@ public class ServiceProcess extends ProcessingThread {
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: CONTENT_DB_CONNECTION_ERROR");
             return;
         }
-        if(batchRechargeCmd.batchRechargeElements.isEmpty()){
+        if(batchRechargeElement ==null){
             
             transactionRecord.recharge_sub_type = 0;
             transactionRecord.balance_after =   transactionRecord.balance_before;
-            transactionRecord.result_description = "Refund batch recharge list not found";
+            transactionRecord.result_description = "Refund batch recharge msisdb not found";
             transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
             transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_REFUND_BATCH_RECHARGE_LIST_NOT_FOUND";
+            agentRequest.result_description = "CONTENT_REFUND_BATCH_RECHARGE_MSISDN_NOT_FOUND";
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; Batch recharge list not found");
             return;
         }
-        
-        batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
-
-        refundBatchRechargeGetSubInfoElement(requestInfo);
+        old_transactionRecord.recharge_msidn=batchRechargeElement.recharge_msisdn;
+        transactionRecord.recharge_msidn=batchRechargeElement.recharge_msisdn;
+        onRefundRecharge(requestInfo);
     }
     private void onRefundMoveStock(RequestInfo requestInfo){
         //TRANS_TYPE_MOVE_STOCK
         AgentRequest agentRequest=requestInfo.agentRequest;
         TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
         TransactionRecord transactionRecord=requestInfo.transactionRecord;
-        transactionRecord.transaction_amount_req=Math.abs(old_transactionRecord.balance_changed_amount);
-        
         DealerInfo receiverInfo = null;
         try {
             receiverInfo = connection.getDealerInfo(old_transactionRecord.partner_msisdn);
@@ -859,7 +861,7 @@ public class ServiceProcess extends ProcessingThread {
 
         
         if( receiverInfo.balance>= Config.MULTIPLIER){
-            long refundAmount=Math.abs(old_transactionRecord.balance_changed_amount);
+            long refundAmount=agentRequest.refund_amount;
             if(  refundAmount >receiverInfo.balance  ){
                 refundAmount= (receiverInfo.balance/Config.MULTIPLIER)*Config.MULTIPLIER;
             }
@@ -975,10 +977,9 @@ public class ServiceProcess extends ProcessingThread {
     private void onRefundAddBalance(RequestInfo requestInfo){
         AgentRequest agentRequest=requestInfo.agentRequest;
         DealerInfo dealerInfo=requestInfo.dealerInfo;
-        TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
+        //TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
         TransactionRecord transactionRecord=requestInfo.transactionRecord;
-        transactionRecord.transaction_amount_req=Math.abs(old_transactionRecord.balance_changed_amount);
-        long refundAmount=Math.abs(old_transactionRecord.balance_changed_amount);
+        long refundAmount=agentRequest.refund_amount;
         if(  refundAmount > dealerInfo.balance  ){
             refundAmount= ( dealerInfo.balance/Config.MULTIPLIER)*Config.MULTIPLIER;
         }
@@ -1676,7 +1677,7 @@ public class ServiceProcess extends ProcessingThread {
         if(requestInfo.old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE){
             OnRefundRechargeGetSubInfoResp(getSubInfoCmdResp);
         }else if(requestInfo.old_transactionRecord.type==TransactionRecord.TRANS_TYPE_BATCH_RECHARGE){
-            OnRefundBatchRechargeGetSubInfoResp(getSubInfoCmdResp);
+            OnRefundRechargeGetSubInfoResp(getSubInfoCmdResp);
         }
 	    
 	}
@@ -1690,7 +1691,7 @@ public class ServiceProcess extends ProcessingThread {
                 transactionRecord.recharge_sub_type = GetSubInfoCmd.SUBS_TYPE_PREPAID;
                 int subBalance=getSubInfoCmdResp.balance; 
                 if(subBalance >= Config.MULTIPLIER ){
-                    long chargeValue=requestInfo.old_transactionRecord.recharge_value;
+                    long chargeValue=agentRequest.refund_amount;
                     if( chargeValue > subBalance){
                         chargeValue= (subBalance/Config.MULTIPLIER)*Config.MULTIPLIER;
                     }
@@ -1720,7 +1721,7 @@ public class ServiceProcess extends ProcessingThread {
                 }
             }
             else if(getSubInfoCmdResp.subType == GetSubInfoCmd.SUBS_TYPE_POSTPAID){
-                long refundAmount=requestInfo.old_transactionRecord.recharge_value;
+                long refundAmount=agentRequest.refund_amount;
                 agentRequest.balance_add_amount = refundAmount;
                 agentRequest.dealer_id = requestInfo.old_transactionRecord.dealer_id;
                 updateDealer(agentRequest);
@@ -1791,80 +1792,6 @@ public class ServiceProcess extends ProcessingThread {
             return;
         }
     }
-	private void OnRefundBatchRechargeGetSubInfoResp(GetSubInfoCmd getSubInfoCmdResp) {
-        // TODO Auto-generated method stub
-        RequestInfo requestInfo = listRequestProcessing.get(getSubInfoCmdResp.msisdn);
-        BatchRechargeCmd batchRechargeCmd=(BatchRechargeCmd)requestInfo.dealerRequest.requestCmd;// get back batch recharge cmd
-        BatchRechargeElement batchRechargeElement = batchRechargeCmd.currentBatchRechargeElement;
-        
-        if(getSubInfoCmdResp.resultCode==PaymentGWResultCode.RC_GET_SUBS_INFO_SUCCESS){
-            if(getSubInfoCmdResp.subType == GetSubInfoCmd.SUBS_TYPE_PREPAID){
-                int subBalance=getSubInfoCmdResp.balance; 
-                if(subBalance >= Config.MULTIPLIER ){
-                    long chargeValue=batchRechargeElement.recharge_value;
-                    if( chargeValue > subBalance){
-                        chargeValue= (subBalance/Config.MULTIPLIER)*Config.MULTIPLIER;
-                    }
-                    ChargingCmd chargingCmd = new ChargingCmd();
-                    chargingCmd.msisdn=requestInfo.msisdn;
-                    chargingCmd.recharge_msidn=batchRechargeElement.recharge_msisdn;
-                    
-                    chargingCmd.transactionID=getPaymentGWTransactionId();
-                    chargingCmd.spID=Config.charging_spID;
-                    chargingCmd.serviceID=Config.charging_serviceID;
-                    chargingCmd.chargeValue=chargeValue;
-                    ChargingSession chargingSession = new ChargingSession(chargingCmd, queueChargingCmdResp, logger);
-                    chargingSession.start();
-                }else{
-                    logInfo("Balance is not enough for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
-                    batchRechargeCmd.recharge_failed++;
-                    batchRechargeElement.refund_status=BatchRechargeElement.STATUS_FAILED;
-                    batchRechargeElement.refund_result_code = getSubInfoCmdResp.resultCode;
-                    batchRechargeElement.refund_result_string = "Balance is not enough.";
-                    updateBatchRechargeElement(batchRechargeElement); // @NOTE
-                    if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-                        onRefundBatchRechargeDone(requestInfo);
-                    }else{
-                        batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
-                        refundBatchRechargeGetSubInfoElement(requestInfo);
-                    }
-                    return;
-                }
-            }
-            else if(getSubInfoCmdResp.subType == GetSubInfoCmd.SUBS_TYPE_POSTPAID){
-                logInfo("Get subInfo is postpaid for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
-
-                batchRechargeCmd.recharge_success++;
-                batchRechargeCmd.recharge_success_amount+=batchRechargeElement.recharge_value;
-                batchRechargeElement.refund_status=BatchRechargeElement.STATUS_SUCCESS;
-                batchRechargeElement.refund_result_code = getSubInfoCmdResp.resultCode;
-                batchRechargeElement.refund_result_string = getSubInfoCmdResp.resultString;
-                
-                updateBatchRechargeElement(batchRechargeElement); // @NOTE
-                if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-                    onRefundBatchRechargeDone(requestInfo);
-                }else{
-                    batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
-                    refundBatchRechargeGetSubInfoElement(requestInfo);
-                }
-            }
-        }
-        else{
-            logInfo("Get subInfo failed for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
-            batchRechargeCmd.recharge_failed++;
-            batchRechargeElement.refund_status=BatchRechargeElement.STATUS_FAILED;
-            batchRechargeElement.refund_result_code = getSubInfoCmdResp.resultCode;
-            batchRechargeElement.refund_result_string = getSubInfoCmdResp.resultString;
-            updateBatchRechargeElement(batchRechargeElement); // @NOTE
-            if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-                onRefundBatchRechargeDone(requestInfo);
-            }else{
-                batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
-                refundBatchRechargeGetSubInfoElement(requestInfo);
-            }
-            return;
-        }
-    }
 
     private void onRefundBatchRechargeDone(RequestInfo requestInfo) {
         AgentRequest agentRequest=requestInfo.agentRequest;
@@ -1921,7 +1848,7 @@ public class ServiceProcess extends ProcessingThread {
         if(requestInfo.old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE){
             OnRefundRechargeChargingCmdResp(chargingCmdResp);
         }else if(requestInfo.old_transactionRecord.type==TransactionRecord.TRANS_TYPE_BATCH_RECHARGE){
-            OnRefundBatchRechargeChargingCmdResp(chargingCmdResp);
+            OnRefundRechargeChargingCmdResp(chargingCmdResp);
         }
         
 	}
@@ -1938,7 +1865,6 @@ public class ServiceProcess extends ProcessingThread {
             transactionRecord.balance_after = transactionRecord.balance_before+ chargingCmdResp.chargeValue ;
             transactionRecord.balance_changed_amount=chargingCmdResp.chargeValue;
             transactionRecord.recharge_value=-1*(int)chargingCmdResp.chargeValue;
-            transactionRecord.recharge_msidn= requestInfo.old_transactionRecord.recharge_msidn;
             transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
             transactionRecord.result_description = "Refund recharge prepaid subscriber success";
             insertTransactionRecord(transactionRecord);
@@ -2008,65 +1934,7 @@ public class ServiceProcess extends ProcessingThread {
             return;
         }
     }
-    private void OnRefundBatchRechargeChargingCmdResp(ChargingCmd chargingCmdResp) {
-        
-        logInfo("On OnRefundBatchRechargeChargingCmdResp:"+chargingCmdResp.toString());
-        RequestInfo requestInfo = listRequestProcessing.get(chargingCmdResp.msisdn);
-        TransactionRecord transactionRecord = requestInfo.transactionRecord;
-        BatchRechargeCmd batchRechargeCmd = (BatchRechargeCmd) requestInfo.dealerRequest.requestCmd;
-        BatchRechargeElement batchRechargeElement = batchRechargeCmd.currentBatchRechargeElement;
-        
-        if (chargingCmdResp.resultCode == ChargingCmd.RESULT_OK) {
-            logInfo("Get charging success for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
-            batchRechargeCmd.recharge_success++;
-            batchRechargeCmd.recharge_success_amount+=chargingCmdResp.chargeValue;
-            batchRechargeElement.refund_status=BatchRechargeElement.STATUS_SUCCESS;
-            batchRechargeElement.refund_result_code = chargingCmdResp.resultCode;
-            batchRechargeElement.refund_result_string = chargingCmdResp.resultString;
-            updateBatchRechargeElement(batchRechargeElement); // @NOTE
-            
-
-            String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_BATCH_RECHARGE_SUBSCRIBER_NOTIFY")
-                    .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
-                    .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn)
-                    .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
-            String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_BATCH_RECHARGE_SUBSCRIBER_NOTIFY")
-                    .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
-                    .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn);
-            sendSms(requestInfo.old_transactionRecord.dealer_msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_REFUND_RECHARGE, transactionRecord.id);
-           
-            if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-                onRefundBatchRechargeDone(requestInfo);
-            }else{
-                batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
-                refundBatchRechargeGetSubInfoElement(requestInfo);
-            }
-            try {
-                connection.insertRefundCDRRecord(chargingCmdResp.recharge_msidn, chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 2, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
-            }catch (SQLException e) {
-                isConnected = false;
-                logError(MySQLConnection.getSQLExceptionString(e));
-            } catch (Exception e) {
-                e.printStackTrace();
-                logError(e.getMessage());
-            }
-        }else{
-            
-            logInfo("Get charging failed for BatchRechargeElement: id="+batchRechargeElement.id+", msisdn="+batchRechargeElement.recharge_msisdn);
-            batchRechargeCmd.recharge_failed++;
-            batchRechargeElement.refund_status=BatchRechargeElement.STATUS_FAILED;
-            batchRechargeElement.refund_result_code = chargingCmdResp.resultCode;
-            batchRechargeElement.refund_result_string = chargingCmdResp.resultString;
-            updateBatchRechargeElement(batchRechargeElement); // @NOTE
-            if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-                onRefundBatchRechargeDone(requestInfo);
-            }else{
-                batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
-                refundBatchRechargeGetSubInfoElement(requestInfo);
-            }
-            return;
-        }
-    }
+   
 	private void updateBatchRechargeElement(BatchRechargeElement batchRechargeElement) {
 		// TODO Auto-generated method stub
 	    logInfo("Update for "+batchRechargeElement.toString());
