@@ -15,6 +15,7 @@ public class AgentRequest {
 	public static final int REQ_TYPE_CREATE_DEALER = 0;
 	public static final int REQ_TYPE_ADD_BALANCE = 1;
 	public static final int REQ_TYPE_REFUND = 2;
+
 	
 	public static final int STATUS_SUCCESS = 2;
 	public static final int STATUS_FAILED = 3;

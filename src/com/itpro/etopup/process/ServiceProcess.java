@@ -385,7 +385,7 @@ public class ServiceProcess extends ProcessingThread {
 				listRequestProcessing.remove(requestInfo.msisdn);
 				return;
 			}
-			else if(agentInfo.province_code!=dealerInfo.province){
+			else if(agentInfo.province_code!=dealerInfo.province_register){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
 				agentRequest.result_description = "DEALER_NOT_IN_PROVINCE";
 				logError(agentRequest.getRespString());
@@ -554,7 +554,7 @@ public class ServiceProcess extends ProcessingThread {
 					dealerInfo.msisdn = agentRequest.dealer_msisdn;
 					dealerInfo.name = agentRequest.dealer_name;
 					dealerInfo.pin_code = genRandPinCode();
-					dealerInfo.province = agentInfo.province_code;
+					dealerInfo.province_register = agentInfo.province_code;
 					dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
 					dealerInfo.web_password=agentRequest.web_password;
 					insertDealer(dealerInfo);
@@ -1712,7 +1712,7 @@ public class ServiceProcess extends ProcessingThread {
                     insertTransactionRecord(transactionRecord);
                     
                     agentRequest.status = AgentRequest.STATUS_FAILED;
-                    agentRequest.result_description = "CONTENT_BALANCE_NOT_ENOUGHT";
+                    agentRequest.result_description = "CONTENT_BALANCE_NOT_ENOUGH";
                     updateAgentRequest(agentRequest);
                     listRequestProcessing.remove(requestInfo.msisdn);
                     logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Balance is not enough.");
@@ -2210,14 +2210,14 @@ public class ServiceProcess extends ProcessingThread {
 		}
 		else if(checkInfoStatus == BatchRechargeCmd.CHECK_STATUS_DOES_NOT_ENOUGH_BALANCE){
 			batchRechargeCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
-			batchRechargeCmd.resultString = "Account has not enought balance";
+			batchRechargeCmd.resultString = "Account has not enough balance";
 			
 			logInfo(batchRechargeCmd.getRespString());
-			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_BALANCE_NOT_ENOUGHT")
+			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_BALANCE_NOT_ENOUGH")
 					.replaceAll("<BALANCE>", ""+dealerInfo.balance);
-			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_BALANCE_NOT_ENOUGHT").replaceAll("<BALANCE>", ""+dealerInfo.balance);
+			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_BALANCE_NOT_ENOUGH").replaceAll("<BALANCE>", ""+dealerInfo.balance);
 			sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_BATCH_RECHARGE, 0);
-			dealerRequest.result = "CONTENT_BALANCE_NOT_ENOUGHT";
+			dealerRequest.result = "CONTENT_BALANCE_NOT_ENOUGH";
 			updateDealerRequest(dealerRequest);
 			listRequestProcessing.remove(dealerRequest.msisdn);
 		}
@@ -2353,11 +2353,11 @@ public class ServiceProcess extends ProcessingThread {
 				dealerRequest.result = "CONTENT_WRONG_PIN";
 			}
 			else{			
-				rechargeCmd.resultString = "Account has not enought balance";
-				content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_BALANCE_NOT_ENOUGHT")
+				rechargeCmd.resultString = "Account has not enough balance";
+				content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_BALANCE_NOT_ENOUGH")
 						.replaceAll("<BALANCE>", ""+dealerInfo.balance);
-				ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_BALANCE_NOT_ENOUGHT").replaceAll("<BALANCE>", ""+dealerInfo.balance);
-				dealerRequest.result = "CONTENT_BALANCE_NOT_ENOUGHT";
+				ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_BALANCE_NOT_ENOUGH").replaceAll("<BALANCE>", ""+dealerInfo.balance);
+				dealerRequest.result = "CONTENT_BALANCE_NOT_ENOUGH";
 			}
 			transactionRecord.result_description = rechargeCmd.resultString;
 			logInfo(rechargeCmd.getRespString());
@@ -2541,38 +2541,22 @@ public class ServiceProcess extends ProcessingThread {
 				listRequestProcessing.remove(dealerRequest.msisdn);
 				return;
 			}
-			if(receiverInfo!=null){
+			if(receiverInfo!=null&&dealerInfo.id==receiverInfo.parent_id){
 				transactionRecord.partner_msisdn = receiverInfo.msisdn;
 				transactionRecord.partner_id = receiverInfo.id;
 				transactionRecord.partner_balance_before = receiverInfo.balance;
-				if(dealerInfo.id!=receiverInfo.parent_id){
+				if(moveStockCmd.amount>dealerInfo.balance){
 					moveStockCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
-					moveStockCmd.resultString = "Receiver not is Retailer of Dealer";
+					moveStockCmd.resultString = "Account has not enough balance";
 					logInfo(moveStockCmd.getRespString());
 					transactionRecord.balance_after = dealerInfo.balance;
 					transactionRecord.partner_balance_after = receiverInfo.balance;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
 					transactionRecord.result_description = moveStockCmd.resultString;
-					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RECEIVER_NOT_IS_VALID_RETAILER");
-					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECEIVER_NOT_IS_VALID_RETAILER");
+					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_BALANCE_NOT_ENOUGH").replaceAll("<BALANCE>", ""+dealerInfo.balance);
+					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_BALANCE_NOT_ENOUGH");
 					sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_MOVE_STOCK, transactionRecord.id);
-					dealerRequest.result = "CONTENT_RECEIVER_NOT_IS_VALID_RETAILER";
-					dealerRequest.dealer_id = dealerInfo.id;
-					dealerRequest.transaction_id = transactionRecord.id;
-					insertTransactionRecord(transactionRecord);
-				}
-				else if(moveStockCmd.amount>dealerInfo.balance){
-					moveStockCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
-					moveStockCmd.resultString = "Account has not enought balance";
-					logInfo(moveStockCmd.getRespString());
-					transactionRecord.balance_after = dealerInfo.balance;
-					transactionRecord.partner_balance_after = receiverInfo.balance;
-					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
-					transactionRecord.result_description = moveStockCmd.resultString;
-					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_BALANCE_NOT_ENOUGHT").replaceAll("<BALANCE>", ""+dealerInfo.balance);
-					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_BALANCE_NOT_ENOUGHT");
-					sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_MOVE_STOCK, transactionRecord.id);
-					dealerRequest.result = "CONTENT_BALANCE_NOT_ENOUGHT";
+					dealerRequest.result = "CONTENT_BALANCE_NOT_ENOUGH";
 					dealerRequest.dealer_id = dealerInfo.id;
 					dealerRequest.transaction_id = transactionRecord.id;
 					insertTransactionRecord(transactionRecord);
@@ -2581,12 +2565,12 @@ public class ServiceProcess extends ProcessingThread {
 					try {
 						connection.moveStock(moveStockCmd);
 						if(moveStockCmd.db_return_code==0){
-							
+
 							transactionRecord.balance_after = moveStockCmd.balanceAfter;
 							transactionRecord.partner_balance_after = moveStockCmd.receiverBalanceAfter;
 							transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 							transactionRecord.result_description = "Move Stock successfully";
-							
+
 							moveStockCmd.resultCode = RequestCmd.R_OK;
 							moveStockCmd.resultString = "Move Stock successfully";
 							logError(moveStockCmd.getRespString());
@@ -2614,7 +2598,7 @@ public class ServiceProcess extends ProcessingThread {
 							insertTransactionRecord(transactionRecord);
 						}
 						else{
-							
+
 							transactionRecord.balance_after = moveStockCmd.balanceAfter;
 							transactionRecord.partner_balance_after = moveStockCmd.receiverBalanceAfter;
 							transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
@@ -2650,12 +2634,12 @@ public class ServiceProcess extends ProcessingThread {
 			}
 			else{
 				moveStockCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
-				moveStockCmd.resultString = "The receiver is not a dealer";
+				moveStockCmd.resultString = "The receiver is not a sub-dealer";
 				logInfo(moveStockCmd.getRespString());
-				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RECEIVER_NOT_IS_DEALER");
-				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECEIVER_NOT_IS_DEALER");
+				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RECEIVER_NOT_IS_SUB_DEALER");
+				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECEIVER_NOT_IS_SUB_DEALER");
 				sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_MOVE_STOCK, 0);
-				dealerRequest.result = "CONTENT_RECEIVER_NOT_IS_DEALER";
+				dealerRequest.result = "CONTENT_RECEIVER_NOT_IS_SUB_DEALER";
 				dealerRequest.dealer_id = dealerInfo.id;
 			}
 		}

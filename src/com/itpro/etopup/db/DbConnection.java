@@ -117,16 +117,17 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, account_balance from dealers where msisdn = ? and active IN (1,2,3)");
+				"select id, msisdn, pin_code, province_register, account_balance from dealers where msisdn = ? and active IN (1,2,3)");
 		ps.setString(1, msisdn);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
 		if(rs.next()) {
 			dealerInfo = new DealerInfo();
-			dealerInfo.id = rs.getInt(1);
-			dealerInfo.msisdn = rs.getString(2);
-			dealerInfo.pin_code = rs.getString(3);
-			dealerInfo.balance = rs.getInt(4);
+			dealerInfo.id = rs.getInt("id");
+			dealerInfo.msisdn = rs.getString("msisdn");
+			dealerInfo.pin_code = rs.getString("pin_code");
+			dealerInfo.province_register = rs.getInt("province_register");
+			dealerInfo.balance = rs.getInt("account_balance");
 		}
 		rs.close();
 		ps.close();
@@ -137,16 +138,17 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, account_balance from dealers where id = ? ");
+				"select id, msisdn, pin_code, province_register, account_balance from dealers where id = ? ");
 		ps.setInt(1, dealerId);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
 		if(rs.next()) {
 			dealerInfo = new DealerInfo();
-			dealerInfo.id = rs.getInt(1);
-			dealerInfo.msisdn = rs.getString(2);
-			dealerInfo.pin_code = rs.getString(3);
-			dealerInfo.balance = rs.getInt(4);
+			dealerInfo.id = rs.getInt("id");
+			dealerInfo.msisdn = rs.getString("msisdn");
+			dealerInfo.pin_code = rs.getString("pin_code");
+			dealerInfo.province_register = rs.getInt("province_register");
+			dealerInfo.balance = rs.getInt("account_balance");
 		}
 		rs.close();
 		ps.close();
@@ -629,7 +631,7 @@ public class DbConnection extends MySQLConnection {
 		}
 		ps.setDate(7, dealerInfo.birth_date);
 		ps.setString(8, dealerInfo.id_card_number);
-		ps.setInt(9, dealerInfo.province);
+		ps.setInt(9, dealerInfo.province_register);
 		try {
 			if(dealerInfo.address!=null)
 				ps.setBytes(10, dealerInfo.address.getBytes("UTF-8"));
