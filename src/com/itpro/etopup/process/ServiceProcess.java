@@ -17,6 +17,7 @@ import com.itpro.etopup.db.DbConnection;
 import com.itpro.etopup.main.Config;
 import com.itpro.etopup.main.GlobalVars;
 import com.itpro.etopup.struct.AddBalanceRate;
+import com.itpro.etopup.struct.AgentInfo;
 import com.itpro.etopup.struct.AgentRequest;
 import com.itpro.etopup.struct.ChargingCmd;
 import com.itpro.etopup.struct.DealerInfo;
@@ -348,8 +349,8 @@ public class ServiceProcess extends ProcessingThread {
 			//e.printStackTrace();
 			isConnected = false;
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = MySQLConnection.getSQLExceptionString(e);
-			logError(agentRequest.getRespString());
+			agentRequest.result_description = "GET_DEALER_INFO_FAILED";
+			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
 			return;
@@ -363,7 +364,36 @@ public class ServiceProcess extends ProcessingThread {
 			logInfo("AddBalance: msisdn:"+requestInfo.msisdn +"; error: Number not is Dealer");
 		}
 		else{
-			if(!Config.addBalanceRates.isEmpty()){
+			AgentInfo agentInfo = null;
+			try {
+				agentInfo = connection.getAgentInfo(agentRequest.agent_id);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				isConnected = false;
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_description = "GET_AGENT_INFO_FAILED";
+				logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			if(agentInfo == null){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_description = "AGENT_INFO_NOT_FOUND";
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			else if(agentInfo.province_code!=dealerInfo.province){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_description = "DEALER_NOT_IN_PROVINCE";
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			else if(!Config.addBalanceRates.isEmpty()){
 				AddBalanceRate addBalanceRate = null;
 				for(AddBalanceRate tmp:Config.addBalanceRates){
 					logInfo(tmp.toString());
@@ -472,7 +502,28 @@ public class ServiceProcess extends ProcessingThread {
 			logInfo("Create Dealer: msisdn:"+requestInfo.msisdn +"; error: Number is using service");
 		}
 		else{
-			if(!Config.addBalanceRates.isEmpty()){
+			AgentInfo agentInfo = null;
+			try {
+				agentInfo = connection.getAgentInfo(agentRequest.agent_id);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				isConnected = false;
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_description = "GET_AGENT_INFO_FAILED";
+				logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			if(agentInfo == null){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_description = "AGENT_INFO_NOT_FOUND";
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			else if(!Config.addBalanceRates.isEmpty()){
 				AddBalanceRate addBalanceRate = null;
 				for(AddBalanceRate tmp:Config.addBalanceRates){
 					logInfo(tmp.toString());
@@ -503,7 +554,7 @@ public class ServiceProcess extends ProcessingThread {
 					dealerInfo.msisdn = agentRequest.dealer_msisdn;
 					dealerInfo.name = agentRequest.dealer_name;
 					dealerInfo.pin_code = genRandPinCode();
-					dealerInfo.province = agentRequest.dealer_province;
+					dealerInfo.province = agentInfo.province_code;
 					dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
 					insertDealer(dealerInfo);
 					
@@ -2016,7 +2067,7 @@ public class ServiceProcess extends ProcessingThread {
 		dealerRequest.transaction_id = transactionRecord.id;
 		
 		boolean isValidPIN = dealerInfo.pin_code.equals(rechargeCmd.pinCode);
-		boolean isValidAmount = (rechargeCmd.amount>=1000&&rechargeCmd.amount%1000==0)?true:false;
+		boolean isValidAmount = (rechargeCmd.amount>=5000&&rechargeCmd.amount%5000==0)?true:false;
 		
 		if(rechargeMsisdn.equals("") || !isValidPIN || !isValidAmount||rechargeCmd.amount>dealerInfo.balance){
 			rechargeCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
@@ -2130,7 +2181,7 @@ public class ServiceProcess extends ProcessingThread {
 		}
 
 		boolean isValidPIN = dealerInfo.pin_code.equals(moveStockCmd.pinCode);
-		boolean isValidAmount = (moveStockCmd.amount>=1000&&moveStockCmd.amount%1000==0)?true:false;
+		boolean isValidAmount = (moveStockCmd.amount>=5000&&moveStockCmd.amount%5000==0)?true:false;
 		if(receiverMsisdn.equals("") && !isValidPIN && !isValidAmount){
 			moveStockCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
 			moveStockCmd.resultString = "Wrong PIN, Phone number & Amount";
@@ -2263,8 +2314,23 @@ public class ServiceProcess extends ProcessingThread {
 				transactionRecord.partner_msisdn = receiverInfo.msisdn;
 				transactionRecord.partner_id = receiverInfo.id;
 				transactionRecord.partner_balance_before = receiverInfo.balance;
-
-				if(moveStockCmd.amount>dealerInfo.balance){
+				if(dealerInfo.id!=receiverInfo.parent_id){
+					moveStockCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
+					moveStockCmd.resultString = "Receiver not is Retailer of Dealer";
+					logInfo(moveStockCmd.getRespString());
+					transactionRecord.balance_after = dealerInfo.balance;
+					transactionRecord.partner_balance_after = receiverInfo.balance;
+					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+					transactionRecord.result_description = moveStockCmd.resultString;
+					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RECEIVER_NOT_IS_VALID_RETAILER");
+					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECEIVER_NOT_IS_VALID_RETAILER");
+					sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_MOVE_STOCK, transactionRecord.id);
+					dealerRequest.result = "CONTENT_RECEIVER_NOT_IS_VALID_RETAILER";
+					dealerRequest.dealer_id = dealerInfo.id;
+					dealerRequest.transaction_id = transactionRecord.id;
+					insertTransactionRecord(transactionRecord);
+				}
+				else if(moveStockCmd.amount>dealerInfo.balance){
 					moveStockCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
 					moveStockCmd.resultString = "Account has not enought balance";
 					logInfo(moveStockCmd.getRespString());

@@ -7,16 +7,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Vector;
-
-import com.itpro.etopup.main.Config;
 import com.itpro.etopup.struct.AddBalanceRate;
+import com.itpro.etopup.struct.AgentInfo;
 import com.itpro.etopup.struct.AgentRequest;
 import com.itpro.etopup.struct.CDRRecord;
 import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.MTRecord;
 import com.itpro.etopup.struct.TransactionRecord;
-import com.itpro.etopup.struct.dealercmd.BatchRechargeCmd;
 import com.itpro.etopup.struct.dealercmd.BatchRechargeElement;
 import com.itpro.etopup.struct.dealercmd.ChangePinCmd;
 import com.itpro.etopup.struct.dealercmd.MoveStockCmd;
@@ -134,27 +132,48 @@ public class DbConnection extends MySQLConnection {
 		ps.close();
 		return dealerInfo;
 	}
-	   public DealerInfo getDealerInfo(int dealerId) throws SQLException {
-	        // TODO Auto-generated method stub
-	        DealerInfo dealerInfo = null;
-	        PreparedStatement ps=connection.prepareStatement(
-	                "select id, msisdn, pin_code, account_balance from dealers where id = ? ");
-	        ps.setInt(1, dealerId);
-	        ps.execute();
-	        ResultSet rs = ps.getResultSet();
-	        if(rs.next()) {
-	            dealerInfo = new DealerInfo();
-	            dealerInfo.id = rs.getInt(1);
-	            dealerInfo.msisdn = rs.getString(2);
-	            dealerInfo.pin_code = rs.getString(3);
-	            dealerInfo.balance = rs.getInt(4);
-	        }
-	        rs.close();
-	        ps.close();
-	        return dealerInfo;
-	    }
-    public TransactionRecord getTransactionRecord(int id) throws SQLException {
-        // TODO Auto-generated method stub
+	
+	public DealerInfo getDealerInfo(int dealerId) throws SQLException {
+		// TODO Auto-generated method stub
+		DealerInfo dealerInfo = null;
+		PreparedStatement ps=connection.prepareStatement(
+				"select id, msisdn, pin_code, account_balance from dealers where id = ? ");
+		ps.setInt(1, dealerId);
+		ps.execute();
+		ResultSet rs = ps.getResultSet();
+		if(rs.next()) {
+			dealerInfo = new DealerInfo();
+			dealerInfo.id = rs.getInt(1);
+			dealerInfo.msisdn = rs.getString(2);
+			dealerInfo.pin_code = rs.getString(3);
+			dealerInfo.balance = rs.getInt(4);
+		}
+		rs.close();
+		ps.close();
+		return dealerInfo;
+	}
+	
+	public AgentInfo getAgentInfo(int agentId) throws SQLException {
+		// TODO Auto-generated method stub
+		AgentInfo agentInfo = null;
+		PreparedStatement ps=connection.prepareStatement(
+				"select agent_user_name, province from agents where id = ? ");
+		ps.setInt(1, agentId);
+		ps.execute();
+		ResultSet rs = ps.getResultSet();
+		if(rs.next()) {
+			agentInfo = new AgentInfo();
+			agentInfo.id = agentId;
+			agentInfo.user_name = rs.getString(1);
+			agentInfo.province_code = rs.getInt(2);
+		}
+		rs.close();
+		ps.close();
+		return agentInfo;
+	}
+	
+	public TransactionRecord getTransactionRecord(int id) throws SQLException {
+		// TODO Auto-generated method stub
         TransactionRecord transactionRecord = null;
         PreparedStatement ps=connection.prepareStatement(
                 "select id, date_time, type, dealer_msisdn, dealer_id, balance_changed_amount, balance_before, balance_after, "
@@ -456,7 +475,7 @@ public class DbConnection extends MySQLConnection {
 		Vector<AgentRequest> agentRequests = new Vector<AgentRequest>();
 		PreparedStatement ps=connection.prepareStatement(
 				"SELECT id, req_type, req_date, agent_username, agent_id, dealer_msisdn, dealer_name, dealer_id_card_number, "
-				+ "dealer_birthdate, dealer_province, dealer_address, cash_value, invoice_code, "
+				+ "dealer_birthdate, dealer_address, cash_value, invoice_code, "
 				+ "refund_transaction_id FROM agent_requests WHERE status = 0");
 		ps.setMaxRows(30);
 		ps.execute();
@@ -483,16 +502,6 @@ public class DbConnection extends MySQLConnection {
 			agentRequest.dealer_id_card_number = rs.getString("dealer_id_card_number");
 			agentRequest.dealer_birthdate = rs.getDate("dealer_birthdate");
 
-			try {
-				byte[] dealer_province = rs.getBytes("dealer_province");
-				if(dealer_province!=null)
-					agentRequest.dealer_province = new String(dealer_province, "UTF-8");
-				else 
-					agentRequest.dealer_province = null;
-			} catch (UnsupportedEncodingException e) {
-				// TODO Auto-generated catch block
-				agentRequest.dealer_province = rs.getString("dealer_province");
-			}
 			try {
 				byte[] dealer_address = rs.getBytes("dealer_address");
 				if(dealer_address!=null)
@@ -561,15 +570,7 @@ public class DbConnection extends MySQLConnection {
 		}
 		ps.setDate(7, dealerInfo.birth_date);
 		ps.setString(8, dealerInfo.id_card_number);
-		try {
-			if(dealerInfo.province!=null)
-				ps.setBytes(9, dealerInfo.province.getBytes("UTF-8"));
-			else
-				ps.setString(9,null);
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			ps.setString(9, dealerInfo.province);
-		}
+		ps.setInt(9, dealerInfo.province);
 		try {
 			if(dealerInfo.address!=null)
 				ps.setBytes(10, dealerInfo.address.getBytes("UTF-8"));

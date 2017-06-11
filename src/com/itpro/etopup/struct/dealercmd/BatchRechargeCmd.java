@@ -44,7 +44,7 @@ public class BatchRechargeCmd extends RequestCmd {
 						||(batchRechargeElement.recharge_msisdn.startsWith("302") && batchRechargeElement.recharge_msisdn.length()==9))){
 					isInvalidReceiver = true;
 				}
-				if(batchRechargeElement.recharge_value<1000||batchRechargeElement.recharge_value%1000>0){
+				if(batchRechargeElement.recharge_value<5000||batchRechargeElement.recharge_value%5000>0){
 					isInvalidAmount = true;
 				}
 			}

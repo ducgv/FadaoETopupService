@@ -24,12 +24,13 @@ public class AgentRequest {
 	public Timestamp req_date;
 	public String agent_username;
 	public int agent_id;
+	public int agent_province;
 	public String dealer_msisdn;
 	public int dealer_id;
 	public String dealer_name;
 	public String dealer_id_card_number;
 	public Date dealer_birthdate;
-	public String dealer_province;
+	public int dealer_province;
 	public String dealer_address;
 	public long balance_add_amount;
 	public long cash_value;
