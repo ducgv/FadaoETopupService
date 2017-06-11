@@ -1025,7 +1025,9 @@ public class ServiceProcess extends ProcessingThread {
         listRequestProcessing.remove(requestInfo.msisdn);
         
     }
-    private void refundBatchRechargeGetSubInfoElement(RequestInfo requestInfo) {
+    
+    @SuppressWarnings("unused")
+	private void refundBatchRechargeGetSubInfoElement(RequestInfo requestInfo) {
         BatchRechargeCmd batchRechargeCmd=(BatchRechargeCmd)requestInfo.dealerRequest.requestCmd;
         GetSubInfoCmd getSubInfoCmd = new GetSubInfoCmd();
         getSubInfoCmd.msisdn = requestInfo.msisdn;
@@ -1794,7 +1796,8 @@ public class ServiceProcess extends ProcessingThread {
         }
     }
 
-    private void onRefundBatchRechargeDone(RequestInfo requestInfo) {
+    @SuppressWarnings("unused")
+	private void onRefundBatchRechargeDone(RequestInfo requestInfo) {
         AgentRequest agentRequest=requestInfo.agentRequest;
         TransactionRecord transactionRecord = requestInfo.transactionRecord;
         BatchRechargeCmd batchRechargeCmd=(BatchRechargeCmd)requestInfo.dealerRequest.requestCmd;
@@ -1942,6 +1945,7 @@ public class ServiceProcess extends ProcessingThread {
 	    GlobalVars.updateBatchRechargeElementProcess.queueBatchRechargeElement.enqueue(batchRechargeElement);
 	}
 
+	@SuppressWarnings("unused")
 	private void insertRechargeCdrRecord(RechargeCdrRecord rechargeCdrRecord) {
 		// TODO Auto-generated method stub
 		
@@ -2253,7 +2257,7 @@ public class ServiceProcess extends ProcessingThread {
 		// TODO Auto-generated method stub
 		MoveStockCmd moveStockCmd = (MoveStockCmd) dealerRequest.requestCmd;
 		logInfo(moveStockCmd.getReqString());
-		if(isDealer(dealerRequest, SmsTypes.SMS_TYPE_MOVE_STOCK))
+		if(!isDealer(dealerRequest, SmsTypes.SMS_TYPE_MOVE_STOCK))
 			return;
 		DealerInfo dealerInfo = moveStockCmd.dealerInfo;
 		DealerInfo receiverInfo = null;

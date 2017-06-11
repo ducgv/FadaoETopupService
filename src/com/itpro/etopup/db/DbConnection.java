@@ -117,7 +117,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, province_register, account_balance from dealers where msisdn = ? and active IN (1,2,3)");
+				"select id, msisdn, pin_code, province_register, account_balance, parent_id from dealers where msisdn = ? and active IN (1,2,3)");
 		ps.setString(1, msisdn);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -128,6 +128,7 @@ public class DbConnection extends MySQLConnection {
 			dealerInfo.pin_code = rs.getString("pin_code");
 			dealerInfo.province_register = rs.getInt("province_register");
 			dealerInfo.balance = rs.getInt("account_balance");
+			dealerInfo.parent_id = rs.getInt("parent_id");
 		}
 		rs.close();
 		ps.close();
@@ -138,7 +139,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, province_register, account_balance from dealers where id = ? ");
+				"select id, msisdn, pin_code, province_register, account_balance, parent_id from dealers where id = ? ");
 		ps.setInt(1, dealerId);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -149,6 +150,7 @@ public class DbConnection extends MySQLConnection {
 			dealerInfo.pin_code = rs.getString("pin_code");
 			dealerInfo.province_register = rs.getInt("province_register");
 			dealerInfo.balance = rs.getInt("account_balance");
+			dealerInfo.parent_id = rs.getInt("parent_id");
 		}
 		rs.close();
 		ps.close();
