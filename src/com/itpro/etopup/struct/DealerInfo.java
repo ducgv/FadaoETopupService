@@ -28,4 +28,5 @@ public class DealerInfo {
 	public long balance;
 	public int active;
 	public String web_password;
+	public int category;
 }

@@ -536,7 +536,7 @@ public class DbConnection extends MySQLConnection {
 		PreparedStatement ps=connection.prepareStatement(
 				"SELECT id, req_type, req_date, agent_username, agent_id, dealer_msisdn, dealer_name, dealer_id_card_number, "
 				+ "dealer_birthdate, dealer_address, cash_value, invoice_code, "
-				+ "refund_transaction_id,refund_msisdn,refund_amount,web_password FROM agent_requests WHERE status = 0");
+				+ "refund_transaction_id,refund_msisdn,refund_amount,web_password,category FROM agent_requests WHERE status = 0");
 		ps.setMaxRows(30);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -579,6 +579,7 @@ public class DbConnection extends MySQLConnection {
 			agentRequest.refund_amount=rs.getInt("refund_amount");
 			agentRequest.status = 0;
 			agentRequest.web_password=rs.getString("web_password");
+			agentRequest.category=rs.getInt("category");
 			agentRequests.add(agentRequest);
 		}
 		rs.close();
@@ -616,7 +617,7 @@ public class DbConnection extends MySQLConnection {
 		PreparedStatement ps = null;		
 		ps=connection.prepareStatement("INSERT INTO dealers ("
 				+ "msisdn, pin_code, register_date, agent_approved, agent_approved_id, name, birth_date, id_card_number, province_register, address, "
-				+ "account_balance, active,web_password) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+				+ "account_balance, active,web_password,category) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
 		ps.setString(1, dealerInfo.msisdn);
 		ps.setString(2, dealerInfo.pin_code);
 		ps.setTimestamp(3, dealerInfo.register_date);
@@ -646,6 +647,7 @@ public class DbConnection extends MySQLConnection {
 		ps.setLong(11, dealerInfo.balance);
 		ps.setInt(12, dealerInfo.active);
 	    ps.setString(13, dealerInfo.web_password);
+	    ps.setInt(14, dealerInfo.category);
 		ps.executeUpdate();
 
 		ResultSet rs = ps.getGeneratedKeys();

@@ -557,6 +557,7 @@ public class ServiceProcess extends ProcessingThread {
 					dealerInfo.province_register = agentInfo.province_code;
 					dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
 					dealerInfo.web_password=agentRequest.web_password;
+					dealerInfo.category=agentRequest.category;
 					insertDealer(dealerInfo);
 					
 					TransactionRecord transactionRecord = createTransactionRecord();
