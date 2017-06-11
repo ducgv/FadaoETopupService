@@ -157,7 +157,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		AgentInfo agentInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select agent_user_name, province from agents where id = ? ");
+				"select username, province_code from users where id = ? ");
 		ps.setInt(1, agentId);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -610,7 +610,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		PreparedStatement ps = null;		
 		ps=connection.prepareStatement("INSERT INTO dealers ("
-				+ "msisdn, pin_code, register_date, agent_approved, agent_approved_id, name, birth_date, id_card_number, province, address, "
+				+ "msisdn, pin_code, register_date, agent_approved, agent_approved_id, name, birth_date, id_card_number, province_register, address, "
 				+ "account_balance, active) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
 		ps.setString(1, dealerInfo.msisdn);
 		ps.setString(2, dealerInfo.pin_code);
