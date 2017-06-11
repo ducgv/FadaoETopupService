@@ -564,7 +564,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.dealer_id = dealerInfo.id;
 					transactionRecord.balance_before = 0;
 					transactionRecord.balance_after = dealerInfo.balance;
-					transactionRecord.type = TransactionRecord.TRANS_TYPE_CREATE_ACCOUNT;
+					transactionRecord.type = TransactionRecord.TRANS_TYPE_CREATE_DEALER;
 					transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
 					transactionRecord.agent = agentRequest.agent_username;
 					transactionRecord.agent_id = agentRequest.agent_id;

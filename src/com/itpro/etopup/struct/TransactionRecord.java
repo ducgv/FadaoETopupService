@@ -10,7 +10,7 @@ import java.sql.Timestamp;
  *
  */
 public class TransactionRecord {
-	public final static int TRANS_TYPE_CREATE_ACCOUNT = 0;
+	public final static int TRANS_TYPE_CREATE_DEALER = 0;
 	public final static int TRANS_TYPE_ADD_BALANCE = 1;
 	public final static int TRANS_TYPE_RECHARGE = 2;
 	public final static int TRANS_TYPE_BATCH_RECHARGE = 3;

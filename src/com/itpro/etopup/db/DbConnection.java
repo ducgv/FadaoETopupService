@@ -344,7 +344,7 @@ public class DbConnection extends MySQLConnection {
             ps.execute();
             ps.close();
             break;
-		case TransactionRecord.TRANS_TYPE_CREATE_ACCOUNT:
+		case TransactionRecord.TRANS_TYPE_CREATE_DEALER:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
 					+ "agent, agent_id, cash_value, invoice_code, status, result_description) "
