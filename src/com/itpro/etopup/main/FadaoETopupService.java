@@ -5,6 +5,7 @@ package com.itpro.etopup.main;
 
 
 import com.itpro.cfgreader.CfgReader;
+import com.itpro.etopup.struct.AgentRequest;
 import com.itpro.log4j.ITProLog4jCategory;
 import com.itpro.util.MainForm;
 import com.itpro.util.Params;
@@ -61,6 +62,8 @@ public class FadaoETopupService extends MainForm {
 	protected void OnStartSystem() {
 		// TODO Auto-generated method stub
 		logger = logManager.GetInstance("ETopup", getLogPath(), "ETopup", 1, 1, 1, 1, 1, 1, 1, true);
+		
+		AgentRequest.init();
 		
 		GlobalVars.eTopupCli.setLogger(logger);
 		GlobalVars.eTopupCli.setLogPrefix("[CLI] ");

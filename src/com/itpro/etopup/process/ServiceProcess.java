@@ -311,7 +311,7 @@ public class ServiceProcess extends ProcessingThread {
 	
 	private void OnAgentRequest(AgentRequest agentRequest) {
 		// TODO Auto-generated method stub
-		logInfo(agentRequest.toString());
+		logInfo(agentRequest.getReqString());
 		if(listRequestProcessing.containsKey(agentRequest.dealer_msisdn)){
 			agentRequests.add(agentRequest);
 			return;

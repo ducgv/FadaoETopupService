@@ -64,14 +64,15 @@ public class AgentRequest {
 	public int transaction_id;
 	public String web_password;
 	public int category;
-	public String getRespString() {
+	public String getReqString() {
 		// TODO Auto-generated method stub
 		switch(req_type){
 		case REQ_TYPE_CREATE_DEALER:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
-					"; msisdn:"+dealer_msisdn;
+					"; msisdn:"+dealer_msisdn+
+					(dealer_parent_id!=0?"; parent_id:"+dealer_parent_id:"");
 		case REQ_TYPE_ADD_BALANCE:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
@@ -83,6 +84,8 @@ public class AgentRequest {
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
 					"; msisdn:"+dealer_msisdn+
+					"; refundMsisdn:"+refund_msisdn+
+					"; refundAmount:"+refund_amount+
 					"; transactionId:"+refund_transaction_id;
 		case REQ_TYPE_UNBLOCK:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
@@ -108,6 +111,73 @@ public class AgentRequest {
 					"; transactionId:"+refund_transaction_id;
 		default:
 			return "AgentReq: reqType:unknown"+
+			"; agentUserName:"+agent_username+
+			"; agentId:"+agent_id;
+			
+		}
+	}
+	
+	public String getRespString() {
+		// TODO Auto-generated method stub
+		switch(req_type){
+		case REQ_TYPE_CREATE_DEALER:
+			return "AgentReqResult: reqType:"+reqTypeString[req_type]+
+					"; agentUserName:"+agent_username+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn+
+					(dealer_parent_id!=0?"; parent_id:"+dealer_parent_id:"")+
+					"; status:"+status+
+					"; result:"+result_description;
+		case REQ_TYPE_ADD_BALANCE:
+			return "AgentReqResult: reqType:"+reqTypeString[req_type]+
+					"; agentUserName:"+agent_username+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn+
+					"; cash_value:"+cash_value+
+					"; status:"+status+
+					"; result:"+result_description;
+		case REQ_TYPE_REFUND:
+			return "AgentReqResult: reqType:"+reqTypeString[req_type]+
+					"; agentUserName:"+agent_username+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn+
+					"; refundMsisdn:"+refund_msisdn+
+					"; refundAmount:"+refund_amount+
+					"; transactionId:"+refund_transaction_id+
+					"; status:"+status+
+					"; result:"+result_description;
+		case REQ_TYPE_UNBLOCK:
+			return "AgentReqResult: reqType:"+reqTypeString[req_type]+
+					"; agentUserName:"+agent_username+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn+
+					"; status:"+status+
+					"; result:"+result_description;
+		case REQ_TYPE_DEACTIVE_DEALER:
+			return "AgentReqResult: reqType:"+reqTypeString[req_type]+
+					"; agentUserName:"+agent_username+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn+
+					"; status:"+status+
+					"; result:"+result_description;
+		case REQ_TYPE_MOVE_DEALER:
+			return "AgentReqResult: reqType:"+reqTypeString[req_type]+
+					"; agentUserName:"+agent_username+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn+
+					"; dest_province_code:"+dest_province_code+
+					"; status:"+status+
+					"; result:"+result_description;
+		case REQ_TYPE_CANCEL_ADD_BALANCE:
+			return "AgentReqResult: reqType:"+reqTypeString[req_type]+
+					"; agentUserName:"+agent_username+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn+
+					"; transactionId:"+refund_transaction_id+
+					"; status:"+status+
+					"; result:"+result_description;
+		default:
+			return "AgentReqResult: reqType:unknown"+
 			"; agentUserName:"+agent_username+
 			"; agentId:"+agent_id;
 			
