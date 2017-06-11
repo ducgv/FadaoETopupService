@@ -704,10 +704,13 @@ public class ServiceProcess extends ProcessingThread {
             transactionRecord.type = TransactionRecord.TRANS_TYPE_REFUND_RECHARGE;
             onRefundBatchRecharge(requestInfo);
         }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_MOVE_STOCK){
-            
+            transactionRecord.type = TransactionRecord.TRANS_TYPE_REFUND_MOVE_STOCK;
+            onRefundMoveStock(requestInfo);
         }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_ADD_BALANCE){
-            
+            transactionRecord.type = TransactionRecord.TRANS_TYPE_REFUND_ADD_BALANCE;
+            onRefundAddBalance(requestInfo);
         }else{
+            transactionRecord.transaction_amount_req=Math.abs(old_transactionRecord.balance_changed_amount);
             transactionRecord.recharge_sub_type = 0;
             transactionRecord.balance_after =   transactionRecord.balance_before;
             transactionRecord.result_description = "Refund transaction have to be recharge|move stock|add balance";
@@ -791,7 +794,225 @@ public class ServiceProcess extends ProcessingThread {
 
         refundBatchRechargeGetSubInfoElement(requestInfo);
     }
+    private void onRefundMoveStock(RequestInfo requestInfo){
+        //TRANS_TYPE_MOVE_STOCK
+        AgentRequest agentRequest=requestInfo.agentRequest;
+        TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
+        TransactionRecord transactionRecord=requestInfo.transactionRecord;
+        transactionRecord.transaction_amount_req=Math.abs(old_transactionRecord.balance_changed_amount);
+        
+        DealerInfo receiverInfo = null;
+        try {
+            receiverInfo = connection.getDealerInfo(old_transactionRecord.partner_msisdn);
+           // moveStockCmd.receiverInfo = receiverInfo;
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            //e.printStackTrace();
+            isConnected = false;  
+            transactionRecord.recharge_sub_type = 0;
+            transactionRecord.balance_after =   transactionRecord.balance_before;
+            transactionRecord.result_description = "Connect Db error.";
+            transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+            transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+            insertTransactionRecord(transactionRecord);
+            
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_DB_CONNECTION_ERROR";
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
+            return;
+        }
+        if( receiverInfo==null){
+            transactionRecord.recharge_sub_type = 0;
+            transactionRecord.balance_after =   transactionRecord.balance_before;
+            transactionRecord.result_description = "Not foud receiver.";
+            transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+            transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+            insertTransactionRecord(transactionRecord);
+            
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_RECEIVER_NOT_FOUND";
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Not foud receiver.");
+            return;
+        }
+        
+        transactionRecord.partner_msisdn = receiverInfo.msisdn;
+        transactionRecord.partner_id = receiverInfo.id;
+        transactionRecord.partner_balance_before = receiverInfo.balance;
+        
+        MoveStockCmd moveStockCmd=new MoveStockCmd();
+        moveStockCmd.dealerInfo=receiverInfo; // we reverse 
+        moveStockCmd.receiverInfo=requestInfo.dealerInfo; 
 
+        
+        if( receiverInfo.balance>= Config.MULTIPLIER){
+            long refundAmount=Math.abs(old_transactionRecord.balance_changed_amount);
+            if(  refundAmount >receiverInfo.balance  ){
+                refundAmount= (receiverInfo.balance/Config.MULTIPLIER)*Config.MULTIPLIER;
+            }
+            moveStockCmd.amount=(int)refundAmount;
+            try {
+                connection.moveStock(moveStockCmd);
+                if(moveStockCmd.db_return_code==0){
+                    
+                    transactionRecord.balance_after = moveStockCmd.receiverBalanceAfter;// we reverse 
+                    transactionRecord.partner_balance_after = moveStockCmd.balanceAfter;
+                    transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+                    transactionRecord.result_description = "Refun Move Stock successfully";
+                    transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+                    transactionRecord.balance_changed_amount=moveStockCmd.amount;
+                    insertTransactionRecord(transactionRecord);
+                    
+                    moveStockCmd.resultCode = RequestCmd.R_OK;
+                    moveStockCmd.resultString = "Move Stock successfully";
+                    logInfo(moveStockCmd.getRespString());
+                    
+                    agentRequest.status = AgentRequest.STATUS_SUCCESS;
+                    agentRequest.result_description = "CONTENT_REFUND_MOVE_STOCK_SUCCESS";
+                    updateAgentRequest(agentRequest);
+                    listRequestProcessing.remove(requestInfo.msisdn);
+                    
+                    
+                    String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_MOVE_STOCK_SUCCESS")
+                            .replaceAll("<DATE_TIME>", getDateTimeFormated(transactionRecord.date_time))
+                            .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
+                            .replaceAll("<RECEIVER_NUMBER>", moveStockCmd.dealerInfo.msisdn)
+                            .replaceAll("<BALANCE>", ""+moveStockCmd.balanceAfter)
+                            .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+                    String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_MOVE_STOCK_SUCCESS")
+                            .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
+                            .replaceAll("<RECEIVER_NUMBER>", moveStockCmd.dealerInfo.msisdn)
+                            .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+                    sendSms(requestInfo.dealerInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_REFUND_MOVE_STOCK, transactionRecord.id);
+                    
+                    String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_RECEIVER_MOVE_STOCK_SUCCESS_NOTIFY")
+                            .replaceAll("<DATE_TIME>", getDateTimeFormated(transactionRecord.date_time))
+                            .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
+                            .replaceAll("<TRANS_ID>", ""+transactionRecord.id)
+                            .replaceAll("<DEALER>", old_transactionRecord.dealer_msisdn.replaceFirst("856", "0"));
+                    String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECEIVER_MOVE_STOCK_SUCCESS_NOTIFY")
+                            .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
+                            .replaceAll("<TRANS_ID>", ""+transactionRecord.id)
+                            .replaceAll("<DEALER>", old_transactionRecord.dealer_msisdn.replaceFirst("856", "0"));
+                    sendSms(receiverInfo.msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_REFUND_MOVE_STOCK, transactionRecord.id);
+                    
+                    try {
+                        requestInfo.old_transactionRecord.refund_status=TransactionRecord.TRANS_REFUNDED_STATUS;
+                        connection.updateTransactionRecord(requestInfo.old_transactionRecord);
+                    }catch (SQLException e) {
+                        e.printStackTrace();
+                        isConnected = false;
+                        logError(MySQLConnection.getSQLExceptionString(e));
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        logError(e.getMessage());
+                    }
+                }
+                else{
+                    transactionRecord.recharge_sub_type = 0;
+                    transactionRecord.balance_after =   transactionRecord.balance_before;
+                    transactionRecord.result_description = "Execute SQL function failed";
+                    transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+                    transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+                    insertTransactionRecord(transactionRecord);
+                    
+                    agentRequest.status = AgentRequest.STATUS_FAILED;
+                    agentRequest.result_description = "CONTENT_DB_MOVE_STOCK_FUNCTION_ERROR";
+                    updateAgentRequest(agentRequest);
+                    listRequestProcessing.remove(requestInfo.msisdn);
+                    logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
+                    return;
+                }
+            } catch (SQLException e) {
+                
+                isConnected = false;  
+                transactionRecord.recharge_sub_type = 0;
+                transactionRecord.balance_after =   transactionRecord.balance_before;
+                transactionRecord.result_description = "Connect Db error.";
+                transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+                transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+                insertTransactionRecord(transactionRecord);
+                
+                agentRequest.status = AgentRequest.STATUS_FAILED;
+                agentRequest.result_description = "CONTENT_DB_CONNECTION_ERROR";
+                updateAgentRequest(agentRequest);
+                listRequestProcessing.remove(requestInfo.msisdn);
+                logInfo("Refund transaction : id:"+requestInfo.agentRequest.id +"; error: Get SubInfo Failed");
+                return;
+
+            }
+        }else{
+            transactionRecord.recharge_sub_type = 0;
+            transactionRecord.balance_after =   transactionRecord.balance_before;
+            transactionRecord.result_description = "Receiver balance is not enough.";
+            transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+            transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+            insertTransactionRecord(transactionRecord);
+            
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_RECEIVER_BALANCE_NOT_ENOUGH";
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refund transaction : id:"+requestInfo.agentRequest.id +"; error: Receiver balance is not enough.");
+            return;
+        }
+        
+        
+    }
+    private void onRefundAddBalance(RequestInfo requestInfo){
+        AgentRequest agentRequest=requestInfo.agentRequest;
+        DealerInfo dealerInfo=requestInfo.dealerInfo;
+        TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
+        TransactionRecord transactionRecord=requestInfo.transactionRecord;
+        transactionRecord.transaction_amount_req=Math.abs(old_transactionRecord.balance_changed_amount);
+        long refundAmount=Math.abs(old_transactionRecord.balance_changed_amount);
+        if(  refundAmount > dealerInfo.balance  ){
+            refundAmount= ( dealerInfo.balance/Config.MULTIPLIER)*Config.MULTIPLIER;
+        }
+
+        agentRequest.balance_add_amount = -1*refundAmount;
+        agentRequest.dealer_id = dealerInfo.id;
+        updateDealer(agentRequest);
+        
+        transactionRecord.balance_after = dealerInfo.balance-refundAmount; 
+        transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+        transactionRecord.result_description = "Refund add balance successfully";
+        transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+        transactionRecord.balance_changed_amount=-1*refundAmount;
+        insertTransactionRecord(transactionRecord);
+
+        String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_ADD_BALANCE_SUCCESS")
+                .replaceAll("<DATE_TIME>", getDateTimeFormated(transactionRecord.date_time))
+                .replaceAll("<AMOUNT>", ""+refundAmount)
+                .replaceAll("<BALANCE>", ""+transactionRecord.balance_after)
+                .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+        String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_ADD_BALANCE_SUCCESS")
+                .replaceAll("<AMOUNT>", ""+refundAmount)
+                .replaceAll("<BALANCE>", ""+transactionRecord.balance_after)
+                .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+        sendSms(requestInfo.dealerInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_REFUND_MOVE_STOCK, transactionRecord.id);
+        
+        
+        try {
+            requestInfo.old_transactionRecord.refund_status=TransactionRecord.TRANS_REFUNDED_STATUS;
+            connection.updateTransactionRecord(requestInfo.old_transactionRecord);
+        }catch (SQLException e) {
+            isConnected = false;
+            logError(MySQLConnection.getSQLExceptionString(e));
+        } catch (Exception e) {
+            e.printStackTrace();
+            logError(e.getMessage());
+        }
+        
+        agentRequest.status = AgentRequest.STATUS_SUCCESS;
+        agentRequest.result_description = "CONTENT_REFUND_ADD_BALANCE_SUCCESS";
+        updateAgentRequest(agentRequest);
+        listRequestProcessing.remove(requestInfo.msisdn);
+        
+    }
     private void refundBatchRechargeGetSubInfoElement(RequestInfo requestInfo) {
         BatchRechargeCmd batchRechargeCmd=(BatchRechargeCmd)requestInfo.dealerRequest.requestCmd;
         GetSubInfoCmd getSubInfoCmd = new GetSubInfoCmd();
