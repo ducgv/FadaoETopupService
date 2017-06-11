@@ -57,10 +57,13 @@ public class AgentRequest {
 	public long cash_value;
 	public String invoice_code;
 	public int refund_transaction_id;
+	public String refund_msisdn;
+	public int refund_amount;
 	public int status;
 	public String result_description;
 	public int transaction_id;
 	public String web_password;
+	public int category;
 	public String getRespString() {
 		// TODO Auto-generated method stub
 		switch(req_type){
