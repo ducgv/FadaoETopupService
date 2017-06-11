@@ -799,14 +799,25 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_REFUND_BATCH_RECHARGE_MSISDN_NOT_FOUND";
+            agentRequest.result_description = "CONTENT_REFUND_BATCH_RECHARGE_SUB_NOT_FOUND";
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; Batch recharge list not found");
             return;
         }
+        if( agentRequest.refund_amount > batchRechargeElement.recharge_value){
+            agentRequest.status = AgentRequest.STATUS_FAILED;
+            agentRequest.result_description = "CONTENT_REFUND_AMOUNT_GREATER_THAN_RECHARGE_AMOUNT";
+            logError(agentRequest.getRespString());
+            updateAgentRequest(agentRequest);
+            listRequestProcessing.remove(requestInfo.msisdn);
+            logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: refund amount is greater than balance_changed_amount.");
+            return;
+        }
+        
         old_transactionRecord.recharge_msidn=batchRechargeElement.recharge_msisdn;
         transactionRecord.recharge_msidn=batchRechargeElement.recharge_msisdn;
+        transactionRecord.batch_recharge_id=old_transactionRecord.batch_recharge_id;
         onRefundRecharge(requestInfo);
     }
     private void onRefundMoveStock(RequestInfo requestInfo){
