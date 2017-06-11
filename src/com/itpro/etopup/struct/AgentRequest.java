@@ -39,6 +39,7 @@ public class AgentRequest {
 	public int status;
 	public String result_description;
 	public int transaction_id;
+	public String web_password;
 	public String getRespString() {
 		// TODO Auto-generated method stub
 		return null;

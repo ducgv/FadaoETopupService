@@ -556,6 +556,7 @@ public class ServiceProcess extends ProcessingThread {
 					dealerInfo.pin_code = genRandPinCode();
 					dealerInfo.province = agentInfo.province_code;
 					dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
+					dealerInfo.web_password=agentRequest.web_password;
 					insertDealer(dealerInfo);
 					
 					TransactionRecord transactionRecord = createTransactionRecord();
@@ -587,6 +588,15 @@ public class ServiceProcess extends ProcessingThread {
 							.replaceAll("<PIN>", dealerInfo.pin_code)
 							.replaceAll("<BALANCE>", ""+dealerInfo.balance);
 					sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+					
+					// send web user:
+					String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
+                            .replaceAll("<DEALER>", agentRequest.dealer_msisdn)
+                            .replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
+			       MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+			       GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
+			       logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
+					
 					
 					listRequestProcessing.remove(requestInfo.msisdn);
 				}
