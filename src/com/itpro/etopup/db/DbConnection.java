@@ -395,8 +395,8 @@ public class DbConnection extends MySQLConnection {
 		  case TransactionRecord.TRANS_TYPE_REFUND_RECHARGE:
 	            sql = "INSERT INTO transactions"
 	                    + "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-	                    + "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,cash_value,invoice_code,refund_transaction_id) "
-	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	                    + "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,cash_value,invoice_code,refund_transaction_id,`batch_recharge_id`) "
+	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	            ps = connection.prepareStatement(sql);
 	            ps.setInt(1, transactionRecord.id);
 	            ps.setTimestamp(2, transactionRecord.date_time);
@@ -418,6 +418,7 @@ public class DbConnection extends MySQLConnection {
 	            ps.setLong(17, transactionRecord.cash_value);
 	            ps.setString(18, transactionRecord.invoice_code);
 	            ps.setInt(19, transactionRecord.refund_transaction_id);
+	            ps.setInt(20, transactionRecord.batch_recharge_id);
 	            ps.execute();
 	            ps.close();
 	            break;	
@@ -769,6 +770,7 @@ public class DbConnection extends MySQLConnection {
         PreparedStatement ps=connection.prepareStatement(
                 "SELECT id, dealer_id, dealer_msisdn, recharge_msisdn, recharge_value,status,result_code,result_string FROM batch_recharge WHERE batch_recharge_id = ? AND recharge_msisdn=? AND `refund_status` = 0");
         ps.setInt(1, batchRechargeId);
+        ps.setString(2, recharge_msisdn);
         ps.execute();
         ResultSet rs = ps.getResultSet();
         if(rs.next()) {
