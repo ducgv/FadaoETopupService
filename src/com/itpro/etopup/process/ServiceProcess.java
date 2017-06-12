@@ -545,9 +545,12 @@ public class ServiceProcess extends ProcessingThread {
 	private void OnCreateDealer(RequestInfo requestInfo) {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
+		DealerInfo parentInfo = null;
 		AgentRequest agentRequest = requestInfo.agentRequest;
 		try {
 			dealerInfo = connection.getDealerInfo(requestInfo.msisdn);
+			if(agentRequest.dealer_parent_id>0)
+				parentInfo = connection.getDealerInfo(agentRequest.dealer_parent_id);
 			requestInfo.dealerInfo = dealerInfo;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
@@ -569,6 +572,15 @@ public class ServiceProcess extends ProcessingThread {
 			logInfo("Create Dealer: msisdn:"+requestInfo.msisdn +"; error: Number is using service");
 		}
 		else{
+			if(agentRequest.dealer_parent_id>0&&parentInfo==null){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_description = "CONTENT_PARENT_ID_NOT_VALID";
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				logInfo("Create sub-dealer: msisdn:"+requestInfo.msisdn +"; error: ParentID is not valid");
+				return;
+			}
 			AgentInfo agentInitInfo = null;
 			try {
 				agentInitInfo = connection.getAgentInfo(agentRequest.agent_id);
@@ -676,15 +688,25 @@ public class ServiceProcess extends ProcessingThread {
 					agentRequest.transaction_id = transactionRecord.id;
 					updateAgentRequest(agentRequest);
 					logInfo(agentRequest.getRespString());
-					
-					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_SUCCESS")
-							.replaceAll("<PIN>", dealerInfo.pin_code)
-							.replaceAll("<BALANCE>", ""+dealerInfo.balance);
-					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_DEALER_SUCCESS")
-							.replaceAll("<PIN>", dealerInfo.pin_code)
-							.replaceAll("<BALANCE>", ""+dealerInfo.balance);
-					sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
-					
+					if(dealerInfo.parent_id>0){
+						String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_SUB_DEALER_SUCCESS")
+								.replaceAll("<PIN>", dealerInfo.pin_code)
+								.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
+						String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_SUB_DEALER_SUCCESS")
+								.replaceAll("<PIN>", dealerInfo.pin_code)
+								.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
+
+						sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+					}
+					else{
+						String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_SUCCESS")
+								.replaceAll("<PIN>", dealerInfo.pin_code);
+						String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_DEALER_SUCCESS")
+								.replaceAll("<PIN>", dealerInfo.pin_code);
+
+						sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+
+					}
 					// send web user:
 					String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
                             .replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
