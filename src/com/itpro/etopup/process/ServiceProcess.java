@@ -1191,8 +1191,8 @@ public class ServiceProcess extends ProcessingThread {
 						dealerRequest.result = "CONTENT_RECHARGE_OTHER_SUCCESS";
 					}
 					updateDealerRequest(requestInfo.dealerRequest);
-					listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 					createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_SUCCESS);
+					listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 				}
 				else{
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
@@ -1208,8 +1208,8 @@ public class ServiceProcess extends ProcessingThread {
 					sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
 					dealerRequest.result = "CONTENT_DB_DEDUCT_FUNCTION_ERROR";
 					updateDealerRequest(requestInfo.dealerRequest);
-					listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 					createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
+					listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 				}
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
@@ -1224,8 +1224,8 @@ public class ServiceProcess extends ProcessingThread {
 				requestInfo.dealerRequest.result = "CONTENT_DB_CONNECTION_ERROR";
 				requestInfo.dealerRequest.dealer_id = requestInfo.dealerInfo.id;
 				updateDealerRequest(requestInfo.dealerRequest);
-				listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 				createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
+				listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 				return;
 			}
 		}
@@ -1248,8 +1248,9 @@ public class ServiceProcess extends ProcessingThread {
 			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_PAYMENT_POSTPAID_FAILED");
 			sendSms(requestInfo.dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
 			updateDealerRequest(requestInfo.dealerRequest);
-			listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 			createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
+			listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
+			
 		}
 	}
 
@@ -1410,9 +1411,9 @@ public class ServiceProcess extends ProcessingThread {
 						dealerRequest.result = "CONTENT_RECHARGE_OTHER_SUCCESS";
 					}
 					updateDealerRequest(requestInfo.dealerRequest);
+	                createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_SUCCESS); 
 					listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 					
-					createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_SUCCESS); 
 				}
 				else{
 					transactionRecord.balance_after = rechargeCmd.balanceAfter;
@@ -1428,8 +1429,9 @@ public class ServiceProcess extends ProcessingThread {
 					dealerRequest.result = "CONTENT_DB_DEDUCT_FUNCTION_ERROR";
 					updateDealerRequest(requestInfo.dealerRequest);
 					insertTransactionRecord(transactionRecord);
-					listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 					createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_FAILED); 
+					listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
+					
 				}
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
@@ -1443,8 +1445,8 @@ public class ServiceProcess extends ProcessingThread {
 				sendSms(requestInfo.dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RECHARGE, 0);
 				requestInfo.dealerRequest.result = "CONTENT_DB_CONNECTION_ERROR";
 				updateDealerRequest(requestInfo.dealerRequest);
-				listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 				createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_FAILED); 
+				listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 				return;
 			}
 		}
@@ -1463,9 +1465,8 @@ public class ServiceProcess extends ProcessingThread {
 			sendSms(requestInfo.dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
 			requestInfo.dealerRequest.result = "CONTENT_TOPUP_PREPAID_FAILED";
 			updateDealerRequest(requestInfo.dealerRequest);
-			listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
-			
-			createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_FAILED); 
+			createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
+			listRequestProcessing.remove(requestInfo.dealerRequest.msisdn); 
 		}
 	}
 
@@ -1569,8 +1570,8 @@ public class ServiceProcess extends ProcessingThread {
                     sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
                     dealerRequest.result = "CONTENT_DB_DEDUCT_FUNCTION_ERROR";
                     updateDealerRequest(requestInfo.dealerRequest);
-                    listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
                     createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED); 
+                    listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
                 }
             } catch (SQLException e) {
                 // TODO Auto-generated catch block
@@ -1585,8 +1586,8 @@ public class ServiceProcess extends ProcessingThread {
                 requestInfo.dealerRequest.result = "CONTENT_DB_CONNECTION_ERROR";
                 requestInfo.dealerRequest.dealer_id = requestInfo.dealerInfo.id;
                 updateDealerRequest(requestInfo.dealerRequest);
-                listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
                 createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED); 
+                listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
                 return;
             }
         }
@@ -2069,7 +2070,7 @@ public class ServiceProcess extends ProcessingThread {
 	@SuppressWarnings("unused")
 	private void insertRechargeCdrRecord(RechargeCdrRecord rechargeCdrRecord) {
 		// TODO Auto-generated method stub
-		
+		GlobalVars.insertRechargeCdrRecordProcess.queueInsertRechargeCdrRecordProcess.enqueue(rechargeCdrRecord);
 	}
 
 	private void OnDealerRequest(DealerRequest dealerRequest) {
