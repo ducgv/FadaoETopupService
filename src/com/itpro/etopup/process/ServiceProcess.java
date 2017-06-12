@@ -7,12 +7,10 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Random;
 import java.util.Vector;
-
-
-
 import com.itpro.etopup.db.DbConnection;
 import com.itpro.etopup.main.Config;
 import com.itpro.etopup.main.GlobalVars;
@@ -22,6 +20,8 @@ import com.itpro.etopup.struct.AgentRequest;
 import com.itpro.etopup.struct.ChargingCmd;
 import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
+import com.itpro.etopup.struct.DelayMoveStock;
+import com.itpro.etopup.struct.DelayRecharge;
 import com.itpro.etopup.struct.MTRecord;
 import com.itpro.etopup.struct.RechargeCdrRecord;
 import com.itpro.etopup.struct.RequestInfo;
@@ -67,10 +67,14 @@ public class ServiceProcess extends ProcessingThread {
 	public Queue queuePaymentGWResp = new Queue();
 	public Queue queueChargingCmdResp = new Queue();
 	public long lastKeepAliveTime = 0;
+	public long lastCheckDelayFlagTime = 0;
 	
 	private Vector<DealerRequest> dealerRequests = new Vector<DealerRequest>();
 	private Vector<AgentRequest> agentRequests = new Vector<AgentRequest>();
 	private Hashtable<String, RequestInfo> listRequestProcessing = new Hashtable<String, RequestInfo>();
+	
+	private Hashtable<String, DelayRecharge> listDelayRecharges = new Hashtable<String, DelayRecharge>();
+	private Hashtable<String, DelayMoveStock> listDelayMoveStocks = new Hashtable<String, DelayMoveStock>();
 	
 	public int getPaymentGWTransactionId(){
 		int transactionId;
@@ -168,9 +172,37 @@ public class ServiceProcess extends ProcessingThread {
 			}
 			
 		}
+		
+		long curTime = System.currentTimeMillis();
+		if(curTime>=lastCheckDelayFlagTime+300000){
+			checkDelayTransactionFlagsTimeout();
+			lastCheckDelayFlagTime=curTime;
+		}
 	}
 	
 	
+	private void checkDelayTransactionFlagsTimeout() {
+		// TODO Auto-generated method stub
+		Enumeration<String> keys = listDelayRecharges.keys();
+		long currentTime = System.currentTimeMillis();
+		while (keys.hasMoreElements()){
+			String key = keys.nextElement();
+			DelayRecharge delayRecharge = listDelayRecharges.get(key);
+			if(currentTime >= delayRecharge.timestamp+Config.consecutiveTransactionDelayTime*60000){
+				listDelayRecharges.remove(key);
+			}
+		}
+		
+		keys = listDelayMoveStocks.keys();
+		while (keys.hasMoreElements()){
+			String key = keys.nextElement();
+			DelayMoveStock delayMoveStock = listDelayMoveStocks.get(key);
+			if(currentTime >= delayMoveStock.timestamp+Config.consecutiveTransactionDelayTime*60000){
+				listDelayMoveStocks.remove(key);
+			}
+		}
+	}
+
 	private void OnConnected() {
 		logInfo("Connected to DB");
 		try {
@@ -198,6 +230,9 @@ public class ServiceProcess extends ProcessingThread {
 			if (smsLanguage.equalsIgnoreCase("LA")){
 				Config.smsLanguage = Config.LANG_LA;
 			}
+			
+			Config.consecutiveTransactionDelayTime = Integer.parseInt(Config.serviceConfigs.getParam("CONSECUTIVE_TRANSACTION_DELAY_TIME"));
+			
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			logError("Load ServiceConfigs error:" + MySQLConnection.getSQLExceptionString(e));
@@ -249,6 +284,7 @@ public class ServiceProcess extends ProcessingThread {
 	@Override
 	protected void initialize() {
 		// TODO Auto-generated method stub
+		lastCheckDelayFlagTime = System.currentTimeMillis();
 		setHeartBeatInterval(5000);
 		Connect();
 //		nextTime = System.currentTimeMillis();
@@ -330,10 +366,8 @@ public class ServiceProcess extends ProcessingThread {
 			OnAddBalance(requestInfo);
 			break;
 		case AgentRequest.REQ_TYPE_REFUND:
-		    onRefund(requestInfo);
-		    break;
 		case AgentRequest.REQ_TYPE_CANCEL_ADD_BALANCE:
-		    onRefundAddBalance(requestInfo);
+			onRefund(requestInfo);
 		    break;
 		default:
 			break;
@@ -1041,16 +1075,17 @@ public class ServiceProcess extends ProcessingThread {
 			logInfo("AddBalance: msisdn:"+requestInfo.msisdn +"; error: Number is not a Dealer");
 			return;
 		}
+		
         requestInfo.dealerInfo = dealerInfo;
         TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
         TransactionRecord transactionRecord=requestInfo.transactionRecord;
         
         long refundAmount=old_transactionRecord.balance_changed_amount;
-        /*
+        
         if(  refundAmount > dealerInfo.balance  ){
             refundAmount= ( dealerInfo.balance/Config.MULTIPLIER)*Config.MULTIPLIER;
         }
-		*/
+		
         agentRequest.balance_add_amount = -1*refundAmount;
         agentRequest.dealer_id = dealerInfo.id;
         updateDealer(agentRequest);
@@ -1148,6 +1183,9 @@ public class ServiceProcess extends ProcessingThread {
 			try {
 				connection.deductBalance(rechargeCmd);
 				if(rechargeCmd.db_return_code==0){
+					DelayRecharge delayRecharge = new DelayRecharge();
+					delayRecharge.amount = delayRecharge.amount;
+					listDelayRecharges.put(paymentPostpaidCmdResp.msisdn+"_"+paymentPostpaidCmdResp.rechargeMsisdn, delayRecharge);
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 					transactionRecord.balance_after = rechargeCmd.balanceAfter;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
@@ -1363,6 +1401,9 @@ public class ServiceProcess extends ProcessingThread {
 			try {
 				connection.deductBalance(rechargeCmd);
 				if(rechargeCmd.db_return_code==0){
+					DelayRecharge delayRecharge = new DelayRecharge();
+					delayRecharge.amount = delayRecharge.amount;
+					listDelayRecharges.put(topupPrepaidCmdResp.msisdn+"_"+topupPrepaidCmdResp.rechargeMsisdn, delayRecharge);
 					transactionRecord.balance_changed_amount = -1*rechargeCmd.amount;
 					transactionRecord.balance_after = rechargeCmd.balanceAfter;
 					transactionRecord.recharge_sub_type = GetSubInfoCmd.SUBS_TYPE_PREPAID;
@@ -2221,7 +2262,7 @@ public class ServiceProcess extends ProcessingThread {
 		logInfo(rechargeCmd.getReqString());
 		if(!isDealer(dealerRequest, SmsTypes.SMS_TYPE_RECHARGE))
 			return;
-
+		
 		DealerInfo dealerInfo = rechargeCmd.dealerInfo;
 		RequestInfo requestInfo = listRequestProcessing.get(dealerRequest.msisdn);
 		requestInfo.transactionRecord = createTransactionRecord();
@@ -2235,6 +2276,34 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecord.recharge_value = rechargeCmd.amount;
 		dealerRequest.dealer_id = dealerInfo.id;
 		dealerRequest.transaction_id = transactionRecord.id;
+		
+		if(rechargeMsisdn!=null){
+			DelayRecharge checkDelayRecharge = listDelayRecharges.get(dealerRequest.msisdn+"_"+rechargeMsisdn);
+			if(checkDelayRecharge!=null&&checkDelayRecharge.amount == rechargeCmd.amount){
+				long checkCurrentTime = System.currentTimeMillis();
+				if(checkCurrentTime-checkDelayRecharge.timestamp<Config.consecutiveTransactionDelayTime*60000){
+					rechargeCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
+					rechargeCmd.resultString = "Rejected cause by consecutive request";
+					logInfo(rechargeCmd.getRespString());
+					transactionRecord.balance_after = dealerInfo.balance;
+					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+					transactionRecord.result_description = rechargeCmd.resultString;
+					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RECHARGE_CONSECUTIVE").replaceAll("<DELAY_TIME>", ""+Config.consecutiveTransactionDelayTime);
+					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECHARGE_CONSECUTIVE").replaceAll("<DELAY_TIME>", ""+Config.consecutiveTransactionDelayTime);
+					sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
+					dealerRequest.result = "CONTENT_RECHARGE_CONSECUTIVE";
+					dealerRequest.dealer_id = dealerInfo.id;
+					dealerRequest.transaction_id = transactionRecord.id;
+					insertTransactionRecord(transactionRecord);
+					updateDealerRequest(dealerRequest);
+					listRequestProcessing.remove(dealerRequest.msisdn);
+					return;
+				}
+				else{
+					listDelayMoveStocks.remove(dealerRequest.msisdn+"_"+rechargeMsisdn);
+				}
+			}
+		}
 		
 		boolean isValidPIN = dealerInfo.pin_code.equals(rechargeCmd.pinCode);
 		boolean isValidAmount = (rechargeCmd.amount>=5000&&rechargeCmd.amount%5000==0)?true:false;
@@ -2349,7 +2418,35 @@ public class ServiceProcess extends ProcessingThread {
 		else if(moveStockCmd.receiverMsisdn.startsWith("302") && moveStockCmd.receiverMsisdn.length()==9){
 			receiverMsisdn = "856"+moveStockCmd.receiverMsisdn;
 		}
-
+		
+		if(receiverMsisdn!=null){
+			DelayMoveStock checkDelayMoveStock = listDelayMoveStocks.get(moveStockCmd.msisdn+"_"+receiverMsisdn);
+			if(checkDelayMoveStock!=null&&checkDelayMoveStock.amount == moveStockCmd.amount){
+				long checkCurrentTime = System.currentTimeMillis();
+				if(checkCurrentTime-checkDelayMoveStock.timestamp<Config.consecutiveTransactionDelayTime*60000){
+					moveStockCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
+					moveStockCmd.resultString = "Rejected cause by consecutive request";
+					logInfo(moveStockCmd.getRespString());
+					transactionRecord.balance_after = dealerInfo.balance;
+					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+					transactionRecord.result_description = moveStockCmd.resultString;
+					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_MOVE_STOCK_CONSECUTIVE").replaceAll("<DELAY_TIME>", ""+Config.consecutiveTransactionDelayTime);
+					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("CONTENT_MOVE_STOCK_CONSECUTIVE").replaceAll("<DELAY_TIME>", ""+Config.consecutiveTransactionDelayTime);
+					sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_MOVE_STOCK, transactionRecord.id);
+					dealerRequest.result = "CONTENT_MOVE_STOCK_CONSECUTIVE";
+					dealerRequest.dealer_id = dealerInfo.id;
+					dealerRequest.transaction_id = transactionRecord.id;
+					insertTransactionRecord(transactionRecord);
+					updateDealerRequest(dealerRequest);
+					listRequestProcessing.remove(dealerRequest.msisdn);
+					return;
+				}
+				else{
+					listDelayMoveStocks.remove(moveStockCmd.msisdn+"_"+moveStockCmd.receiverMsisdn);
+				}
+			}
+		}
+		
 		boolean isValidPIN = dealerInfo.pin_code.equals(moveStockCmd.pinCode);
 		boolean isValidAmount = (moveStockCmd.amount>=5000&&moveStockCmd.amount%5000==0)?true:false;
 		if(receiverMsisdn.equals("") && !isValidPIN && !isValidAmount){
@@ -2504,7 +2601,9 @@ public class ServiceProcess extends ProcessingThread {
 					try {
 						connection.moveStock(moveStockCmd);
 						if(moveStockCmd.db_return_code==0){
-
+							DelayMoveStock delayMoveStock = new DelayMoveStock();
+							delayMoveStock.amount = moveStockCmd.amount;
+							listDelayMoveStocks.put(moveStockCmd.msisdn+"_"+moveStockCmd.receiverMsisdn, delayMoveStock);
 							transactionRecord.balance_after = moveStockCmd.balanceAfter;
 							transactionRecord.partner_balance_after = moveStockCmd.receiverBalanceAfter;
 							transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;

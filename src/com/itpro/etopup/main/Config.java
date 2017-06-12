@@ -42,4 +42,5 @@ public class Config {
     public static String    charging_serviceID;
     public static String    charging_spPassword;
     public static int       MULTIPLIER=100;
+	public static int consecutiveTransactionDelayTime;
 }
