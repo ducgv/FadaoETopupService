@@ -27,6 +27,9 @@ public class RechargeCdrRecord {
 	public String receiver_msidn;
 	public int receiver_sub_type;
 	public int recharge_value;
+	public int receiver_balance_before;
+	public int receiver_balance_after;
+	
 	public int transaction_id;
 	public int result;
 	public int result_code;
