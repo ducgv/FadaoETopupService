@@ -117,7 +117,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, province_register, account_balance, parent_id from dealers where msisdn = ? and active IN (1,2,3)");
+				"select id, msisdn, pin_code, province_register, account_balance, parent_id, category from dealers where msisdn = ? and active IN (1,2,3)");
 		ps.setString(1, msisdn);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -129,6 +129,7 @@ public class DbConnection extends MySQLConnection {
 			dealerInfo.province_register = rs.getInt("province_register");
 			dealerInfo.balance = rs.getInt("account_balance");
 			dealerInfo.parent_id = rs.getInt("parent_id");
+			dealerInfo.category = rs.getInt("category");
 		}
 		rs.close();
 		ps.close();
@@ -139,7 +140,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, province_register, account_balance, parent_id from dealers where id = ? ");
+				"select id, msisdn, pin_code, province_register, account_balance, parent_id, category from dealers where id = ? ");
 		ps.setInt(1, dealerId);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -151,6 +152,7 @@ public class DbConnection extends MySQLConnection {
 			dealerInfo.province_register = rs.getInt("province_register");
 			dealerInfo.balance = rs.getInt("account_balance");
 			dealerInfo.parent_id = rs.getInt("parent_id");
+			dealerInfo.category = rs.getInt("category");
 		}
 		rs.close();
 		ps.close();
@@ -192,13 +194,13 @@ public class DbConnection extends MySQLConnection {
             transactionRecord.type = rs.getInt("type");
             transactionRecord.dealer_msisdn = rs.getString("dealer_msisdn");
             transactionRecord.dealer_id = rs.getInt("dealer_id");
-            transactionRecord.balance_changed_amount = rs.getInt("balance_changed_amount");
-            transactionRecord.balance_before = rs.getInt("balance_before");
-            transactionRecord.balance_after = rs.getInt("balance_after");
+            transactionRecord.balance_changed_amount = rs.getLong("balance_changed_amount");
+            transactionRecord.balance_before = rs.getLong("balance_before");
+            transactionRecord.balance_after = rs.getLong("balance_after");
             transactionRecord.partner_msisdn = rs.getString("partner_msisdn");
             transactionRecord.partner_id = rs.getInt("partner_id");
-            transactionRecord.partner_balance_before = rs.getInt("partner_balance_before");
-            transactionRecord.partner_balance_after = rs.getInt("partner_balance_after");
+            transactionRecord.partner_balance_before = rs.getLong("partner_balance_before");
+            transactionRecord.partner_balance_after = rs.getLong("partner_balance_after");
             transactionRecord.status = rs.getInt("status");
             transactionRecord.refund_status = rs.getInt("refund_status");
             transactionRecord.recharge_msidn= rs.getString("recharge_msidn");
@@ -348,33 +350,63 @@ public class DbConnection extends MySQLConnection {
             break;
 		case TransactionRecord.TRANS_TYPE_CREATE_DEALER:
 			sql = "INSERT INTO transactions"
-					+ "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, cash_value, invoice_code, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
+					+ "agent, agent_id, approved, approved_id, cash_value, invoice_code, status, result_description) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
 			ps.setInt(3, transactionRecord.type);
 			ps.setString(4, transactionRecord.dealer_msisdn);
 			ps.setInt(5, transactionRecord.dealer_id);
-			ps.setLong(6, transactionRecord.transaction_amount_req);
-			ps.setLong(7, transactionRecord.balance_changed_amount);
-			ps.setLong(8, transactionRecord.balance_before);
-			ps.setLong(9, transactionRecord.balance_after);
-			ps.setString(10, transactionRecord.agent);
-			ps.setInt(11, transactionRecord.agent_id);
-			ps.setLong(12, transactionRecord.cash_value);
-			ps.setString(13, transactionRecord.invoice_code);
-			ps.setInt(14, transactionRecord.status);
-			ps.setString(15, transactionRecord.result_description);
+			ps.setInt(6, transactionRecord.dealer_province);
+			ps.setLong(7, transactionRecord.transaction_amount_req);
+			ps.setLong(8, transactionRecord.balance_changed_amount);
+			ps.setLong(9, transactionRecord.balance_before);
+			ps.setLong(10, transactionRecord.balance_after);
+			ps.setString(11, transactionRecord.agent);
+			ps.setInt(12, transactionRecord.agent_id);
+			ps.setString(13, transactionRecord.approved);
+			ps.setInt(14, transactionRecord.approved_id);
+			ps.setLong(15, transactionRecord.cash_value);
+			ps.setString(16, transactionRecord.invoice_code);
+			ps.setInt(17, transactionRecord.status);
+			ps.setString(18, transactionRecord.result_description);
+			ps.execute();
+			ps.close();
+			break;
+		case TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:
+			sql = "INSERT INTO transactions"
+					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
+					+ "agent, agent_id, approved, approved_id, cash_value, invoice_code, status, result_description) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			ps = connection.prepareStatement(sql);
+			ps.setInt(1, transactionRecord.id);
+			ps.setTimestamp(2, transactionRecord.date_time);
+			ps.setInt(3, transactionRecord.type);
+			ps.setString(4, transactionRecord.dealer_msisdn);
+			ps.setInt(5, transactionRecord.dealer_id);
+			ps.setInt(6, transactionRecord.dealer_province);
+			ps.setLong(7, transactionRecord.transaction_amount_req);
+			ps.setLong(8, transactionRecord.balance_changed_amount);
+			ps.setLong(9, transactionRecord.balance_before);
+			ps.setLong(10, transactionRecord.balance_after);
+			ps.setString(11, transactionRecord.agent);
+			ps.setInt(12, transactionRecord.agent_id);
+			ps.setString(13, transactionRecord.approved);
+			ps.setInt(14, transactionRecord.approved_id);
+			ps.setLong(15, transactionRecord.cash_value);
+			ps.setString(16, transactionRecord.invoice_code);
+			ps.setInt(17, transactionRecord.status);
+			ps.setString(18, transactionRecord.result_description);
 			ps.execute();
 			ps.close();
 			break;
 		case TransactionRecord.TRANS_TYPE_ADD_BALANCE:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, cash_value, invoice_code, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "agent, agent_id, approved, approved_id, cash_value, invoice_code, status, result_description) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -387,18 +419,20 @@ public class DbConnection extends MySQLConnection {
 			ps.setLong(9, transactionRecord.balance_after);
 			ps.setString(10, transactionRecord.agent);
 			ps.setInt(11, transactionRecord.agent_id);
-			ps.setLong(12, transactionRecord.cash_value);
-			ps.setString(13, transactionRecord.invoice_code);
-			ps.setInt(14, transactionRecord.status);
-			ps.setString(15, transactionRecord.result_description);
+			ps.setString(12, transactionRecord.approved);
+			ps.setInt(13, transactionRecord.approved_id);
+			ps.setLong(14, transactionRecord.cash_value);
+			ps.setString(15, transactionRecord.invoice_code);
+			ps.setInt(16, transactionRecord.status);
+			ps.setString(17, transactionRecord.result_description);
 			ps.execute();
 			ps.close();
 			break;
 		  case TransactionRecord.TRANS_TYPE_REFUND_RECHARGE:
 	            sql = "INSERT INTO transactions"
 	                    + "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-	                    + "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,cash_value,invoice_code,refund_transaction_id,`batch_recharge_id`) "
-	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	                    + "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,approved, approved_id,cash_value,invoice_code,refund_transaction_id,`batch_recharge_id`) "
+	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	            ps = connection.prepareStatement(sql);
 	            ps.setInt(1, transactionRecord.id);
 	            ps.setTimestamp(2, transactionRecord.date_time);
@@ -414,54 +448,53 @@ public class DbConnection extends MySQLConnection {
 	            ps.setInt(12, transactionRecord.recharge_sub_type);
 	            ps.setInt(13, transactionRecord.status);
 	            ps.setString(14, transactionRecord.result_description);
-
 	            ps.setString(15, transactionRecord.agent);
 	            ps.setInt(16, transactionRecord.agent_id);
-	            ps.setLong(17, transactionRecord.cash_value);
-	            ps.setString(18, transactionRecord.invoice_code);
-	            ps.setInt(19, transactionRecord.refund_transaction_id);
-	            ps.setInt(20, transactionRecord.batch_recharge_id);
+	            ps.setString(17, transactionRecord.approved);
+				ps.setInt(18, transactionRecord.approved_id);
+	            ps.setLong(19, transactionRecord.cash_value);
+	            ps.setString(20, transactionRecord.invoice_code);
+	            ps.setInt(21, transactionRecord.refund_transaction_id);
+	            ps.setInt(22, transactionRecord.batch_recharge_id);
 	            ps.execute();
 	            ps.close();
 	            break;	
-	        case TransactionRecord.TRANS_TYPE_REFUND_MOVE_STOCK:
-                sql = "INSERT INTO transactions"
-                        + "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-                        + "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, status, result_description,agent,agent_id,cash_value,invoice_code,refund_transaction_id) "
-                        + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                ps = connection.prepareStatement(sql);
-                ps.setInt(1, transactionRecord.id);
-                ps.setTimestamp(2, transactionRecord.date_time);
-                ps.setInt(3, transactionRecord.type);
-                ps.setString(4, transactionRecord.dealer_msisdn);
-                ps.setInt(5, transactionRecord.dealer_id);
-                ps.setLong(6, transactionRecord.transaction_amount_req);
-                ps.setLong(7, transactionRecord.balance_changed_amount);
-                ps.setLong(8, transactionRecord.balance_before);
-                ps.setLong(9, transactionRecord.balance_after);
-                //|
-                ps.setString(10, transactionRecord.partner_msisdn);
-                ps.setInt(11, transactionRecord.partner_id);
-                ps.setLong(12, transactionRecord.partner_balance_before);
-                ps.setLong(13, transactionRecord.partner_balance_after);
-                
-                
-                ps.setInt(14, transactionRecord.status);
-                ps.setString(15, transactionRecord.result_description);
-
-                ps.setString(16, transactionRecord.agent);
-                ps.setInt(17, transactionRecord.agent_id);
-                ps.setLong(18, transactionRecord.cash_value);
-                ps.setString(19, transactionRecord.invoice_code);
-                ps.setInt(20, transactionRecord.refund_transaction_id);
-                ps.execute();
-                ps.close();
-                break;  
-	        case TransactionRecord.TRANS_TYPE_REFUND_ADD_BALANCE:
+		  case TransactionRecord.TRANS_TYPE_REFUND_MOVE_STOCK:
+			  sql = "INSERT INTO transactions"
+					  + "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
+					  + "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, status, result_description,agent,agent_id,approved, approved_id,cash_value,invoice_code,refund_transaction_id) "
+					  + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			  ps = connection.prepareStatement(sql);
+			  ps.setInt(1, transactionRecord.id);
+			  ps.setTimestamp(2, transactionRecord.date_time);
+			  ps.setInt(3, transactionRecord.type);
+			  ps.setString(4, transactionRecord.dealer_msisdn);
+			  ps.setInt(5, transactionRecord.dealer_id);
+			  ps.setLong(6, transactionRecord.transaction_amount_req);
+			  ps.setLong(7, transactionRecord.balance_changed_amount);
+			  ps.setLong(8, transactionRecord.balance_before);
+			  ps.setLong(9, transactionRecord.balance_after);
+			  ps.setString(10, transactionRecord.partner_msisdn);
+			  ps.setInt(11, transactionRecord.partner_id);
+			  ps.setLong(12, transactionRecord.partner_balance_before);
+			  ps.setLong(13, transactionRecord.partner_balance_after);
+			  ps.setInt(14, transactionRecord.status);
+			  ps.setString(15, transactionRecord.result_description);
+			  ps.setString(16, transactionRecord.agent);
+			  ps.setInt(17, transactionRecord.agent_id);
+			  ps.setString(18, transactionRecord.approved);
+			  ps.setInt(19, transactionRecord.approved_id);
+			  ps.setLong(20, transactionRecord.cash_value);
+			  ps.setString(21, transactionRecord.invoice_code);
+			  ps.setInt(22, transactionRecord.refund_transaction_id);
+			  ps.execute();
+			  ps.close();
+			  break;  
+		  case TransactionRecord.TRANS_TYPE_REFUND_ADD_BALANCE:
 	            sql = "INSERT INTO transactions"
 	                    + "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-	                    + "agent, agent_id, cash_value, invoice_code, status, result_description) "
-	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+	                    + "agent, agent_id, approved, approved_id, cash_value, invoice_code, status, result_description) "
+	                    + "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 	            ps = connection.prepareStatement(sql);
 	            ps.setInt(1, transactionRecord.id);
 	            ps.setTimestamp(2, transactionRecord.date_time);
@@ -474,10 +507,12 @@ public class DbConnection extends MySQLConnection {
 	            ps.setLong(9, transactionRecord.balance_after);
 	            ps.setString(10, transactionRecord.agent);
 	            ps.setInt(11, transactionRecord.agent_id);
-	            ps.setLong(12, transactionRecord.cash_value);
-	            ps.setString(13, transactionRecord.invoice_code);
-	            ps.setInt(14, transactionRecord.status);
-	            ps.setString(15, transactionRecord.result_description);
+	            ps.setString(12, transactionRecord.approved);
+				  ps.setInt(13, transactionRecord.approved_id);
+	            ps.setLong(14, transactionRecord.cash_value);
+	            ps.setString(15, transactionRecord.invoice_code);
+	            ps.setInt(16, transactionRecord.status);
+	            ps.setString(17, transactionRecord.result_description);
 	            ps.execute();
 	            ps.close();
                 break;  
@@ -537,7 +572,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		Vector<AgentRequest> agentRequests = new Vector<AgentRequest>();
 		PreparedStatement ps=connection.prepareStatement(
-				"SELECT id, req_type, req_date, agent_username, agent_id, dealer_msisdn, dealer_name, dealer_id_card_number, "
+				"SELECT id, req_type, req_date, agent_username, agent_id, approve_id, dealer_msisdn, dealer_name, dealer_parent_id, dealer_id_card_number, "
 				+ "dealer_birthdate, dealer_address, cash_value, invoice_code, "
 				+ "refund_transaction_id,refund_msisdn,refund_amount,web_password,category FROM agent_requests WHERE status = 0");
 		ps.setMaxRows(30);
@@ -550,6 +585,7 @@ public class DbConnection extends MySQLConnection {
 			agentRequest.req_date = rs.getTimestamp("req_date");
 			agentRequest.agent_username = rs.getString("agent_username");
 			agentRequest.agent_id = rs.getInt("agent_id");
+			agentRequest.agent_approved_id = rs.getInt("approve_id");
 			agentRequest.dealer_msisdn = rs.getString("dealer_msisdn");
 			
 			try {
@@ -562,6 +598,7 @@ public class DbConnection extends MySQLConnection {
 				// TODO Auto-generated catch block
 				agentRequest.dealer_name = rs.getString("dealer_name");
 			}
+			agentRequest.dealer_parent_id=rs.getInt("dealer_parent_id");
 			agentRequest.dealer_id_card_number = rs.getString("dealer_id_card_number");
 			agentRequest.dealer_birthdate = rs.getDate("dealer_birthdate");
 
@@ -575,7 +612,7 @@ public class DbConnection extends MySQLConnection {
 				// TODO Auto-generated catch block
 				agentRequest.dealer_address = rs.getString("dealer_address");
 			}
-			agentRequest.cash_value = rs.getInt("cash_value");
+			agentRequest.cash_value = rs.getLong("cash_value");
 			agentRequest.invoice_code = rs.getString("invoice_code");
 			agentRequest.refund_transaction_id = rs.getInt("refund_transaction_id");
 			agentRequest.refund_msisdn=rs.getString("refund_msisdn");
@@ -619,8 +656,8 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		PreparedStatement ps = null;		
 		ps=connection.prepareStatement("INSERT INTO dealers ("
-				+ "msisdn, pin_code, register_date, agent_approved, agent_approved_id, name, birth_date, id_card_number, province_register, address, "
-				+ "account_balance, active,web_password,category) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+				+ "msisdn, pin_code, register_date, agent_approved, agent_approved_id, name, parent_id, birth_date, id_card_number, province_register, address, "
+				+ "account_balance, active,web_password,category) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
 		ps.setString(1, dealerInfo.msisdn);
 		ps.setString(2, dealerInfo.pin_code);
 		ps.setTimestamp(3, dealerInfo.register_date);
@@ -635,22 +672,23 @@ public class DbConnection extends MySQLConnection {
 			// TODO Auto-generated catch block
 			ps.setString(6, dealerInfo.name);
 		}
-		ps.setDate(7, dealerInfo.birth_date);
-		ps.setString(8, dealerInfo.id_card_number);
-		ps.setInt(9, dealerInfo.province_register);
+		ps.setInt(7, dealerInfo.parent_id);
+		ps.setDate(8, dealerInfo.birth_date);
+		ps.setString(9, dealerInfo.id_card_number);
+		ps.setInt(10, dealerInfo.province_register);
 		try {
 			if(dealerInfo.address!=null)
-				ps.setBytes(10, dealerInfo.address.getBytes("UTF-8"));
+				ps.setBytes(11, dealerInfo.address.getBytes("UTF-8"));
 			else
-				ps.setString(10,null);
+				ps.setString(11,null);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
-			ps.setString(10, dealerInfo.address);
+			ps.setString(11, dealerInfo.address);
 		}
-		ps.setLong(11, dealerInfo.balance);
-		ps.setInt(12, dealerInfo.active);
-	    ps.setString(13, dealerInfo.web_password);
-	    ps.setInt(14, dealerInfo.category);
+		ps.setLong(12, dealerInfo.balance);
+		ps.setInt(13, dealerInfo.active);
+	    ps.setString(14, dealerInfo.web_password);
+	    ps.setInt(15, dealerInfo.category);
 		ps.executeUpdate();
 
 		ResultSet rs = ps.getGeneratedKeys();

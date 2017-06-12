@@ -332,6 +332,9 @@ public class ServiceProcess extends ProcessingThread {
 		case AgentRequest.REQ_TYPE_REFUND:
 		    onRefund(requestInfo);
 		    break;
+		case AgentRequest.REQ_TYPE_CANCEL_ADD_BALANCE:
+		    onRefundAddBalance(requestInfo);
+		    break;
 		default:
 			break;
 		}
@@ -502,9 +505,9 @@ public class ServiceProcess extends ProcessingThread {
 			logInfo("Create Dealer: msisdn:"+requestInfo.msisdn +"; error: Number is using service");
 		}
 		else{
-			AgentInfo agentInfo = null;
+			AgentInfo agentInitInfo = null;
 			try {
-				agentInfo = connection.getAgentInfo(agentRequest.agent_id);
+				agentInitInfo = connection.getAgentInfo(agentRequest.agent_id);
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				isConnected = false;
@@ -515,15 +518,37 @@ public class ServiceProcess extends ProcessingThread {
 				listRequestProcessing.remove(requestInfo.msisdn);
 				return;
 			}
-			if(agentInfo == null){
+			if(agentInitInfo == null){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "AGENT_INFO_NOT_FOUND";
+				agentRequest.result_description = "AGENT_INIT_INFO_NOT_FOUND";
 				logError(agentRequest.getRespString());
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
 				return;
 			}
-			else if(!Config.addBalanceRates.isEmpty()){
+			AgentInfo agentApprovedInfo = null;
+			try {
+				agentApprovedInfo = connection.getAgentInfo(agentRequest.agent_approved_id);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				isConnected = false;
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_description = "GET_AGENT_APPROVED_INFO_FAILED";
+				logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			if(agentApprovedInfo == null){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_description = "AGENT_APPROVED_INFO_NOT_FOUND";
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			
+			if(!Config.addBalanceRates.isEmpty()){
 				AddBalanceRate addBalanceRate = null;
 				for(AddBalanceRate tmp:Config.addBalanceRates){
 					logInfo(tmp.toString());
@@ -546,15 +571,18 @@ public class ServiceProcess extends ProcessingThread {
 					dealerInfo = new DealerInfo();
 					dealerInfo.active = 1;
 					dealerInfo.address = agentRequest.dealer_address;
-					dealerInfo.agent_approved = agentRequest.agent_username;
-					dealerInfo.agent_approved_id = agentRequest.agent_id;
+					dealerInfo.agent_init = agentInitInfo.user_name;
+					dealerInfo.agent_init_id = agentInitInfo.id;
+					dealerInfo.agent_approved = agentApprovedInfo.user_name;
+					dealerInfo.agent_approved_id = agentApprovedInfo.id;
 					dealerInfo.balance = agentRequest.balance_add_amount;
 					dealerInfo.birth_date = agentRequest.dealer_birthdate;
 					dealerInfo.id_card_number = agentRequest.dealer_id_card_number;
 					dealerInfo.msisdn = agentRequest.dealer_msisdn;
 					dealerInfo.name = agentRequest.dealer_name;
+					dealerInfo.parent_id = agentRequest.dealer_parent_id;
 					dealerInfo.pin_code = genRandPinCode();
-					dealerInfo.province_register = agentInfo.province_code;
+					dealerInfo.province_register = agentInitInfo.province_code;
 					dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
 					dealerInfo.web_password=agentRequest.web_password;
 					dealerInfo.category=agentRequest.category;
@@ -563,12 +591,15 @@ public class ServiceProcess extends ProcessingThread {
 					TransactionRecord transactionRecord = createTransactionRecord();
 					transactionRecord.dealer_msisdn = requestInfo.msisdn;
 					transactionRecord.dealer_id = dealerInfo.id;
+					transactionRecord.dealer_province = agentInitInfo.province_code;
 					transactionRecord.balance_before = 0;
 					transactionRecord.balance_after = dealerInfo.balance;
-					transactionRecord.type = TransactionRecord.TRANS_TYPE_CREATE_DEALER;
+					transactionRecord.type = dealerInfo.parent_id>0?TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:TransactionRecord.TRANS_TYPE_CREATE_DEALER;
 					transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
-					transactionRecord.agent = agentRequest.agent_username;
-					transactionRecord.agent_id = agentRequest.agent_id;
+					transactionRecord.agent = agentInitInfo.user_name;
+					transactionRecord.agent_id = agentInitInfo.id;
+					transactionRecord.approved = agentApprovedInfo.user_name;
+					transactionRecord.approved_id = agentApprovedInfo.id;
 					transactionRecord.cash_value = agentRequest.cash_value;
 					transactionRecord.invoice_code = agentRequest.invoice_code;
 					transactionRecord.result_description = "Register ETopup service successfully";
@@ -577,7 +608,7 @@ public class ServiceProcess extends ProcessingThread {
 					insertTransactionRecord(transactionRecord);
 					agentRequest.status = AgentRequest.STATUS_SUCCESS;
 					agentRequest.dealer_id = dealerInfo.id;
-					agentRequest.result_description = "CONTENT_REGISTER_DEALER_SUCCESS";
+					agentRequest.result_description = dealerInfo.parent_id>0?"CONTENT_REGISTER_SUB_DEALER_SUCCESS":"CONTENT_REGISTER_DEALER_SUCCESS";
 					agentRequest.transaction_id = transactionRecord.id;
 					updateAgentRequest(agentRequest);
 					logInfo(agentRequest.getRespString());
@@ -597,8 +628,6 @@ public class ServiceProcess extends ProcessingThread {
 			       MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
 			       GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
 			       logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
-					
-					
 					listRequestProcessing.remove(requestInfo.msisdn);
 				}
 			}
@@ -987,15 +1016,41 @@ public class ServiceProcess extends ProcessingThread {
         
     }
     private void onRefundAddBalance(RequestInfo requestInfo){
-        AgentRequest agentRequest=requestInfo.agentRequest;
-        DealerInfo dealerInfo=requestInfo.dealerInfo;
-        //TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
+    	DealerInfo dealerInfo = null;
+		AgentRequest agentRequest = requestInfo.agentRequest;
+		try {
+			dealerInfo = connection.getDealerInfo(requestInfo.msisdn);
+			requestInfo.dealerInfo = dealerInfo;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			isConnected = false;
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_description = "GET_DEALER_INFO_FAILED";
+			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			return;
+		}
+		if(dealerInfo==null){
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_description = "CONTENT_NOT_IS_DEALER";
+			logError(agentRequest.getRespString());
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			logInfo("AddBalance: msisdn:"+requestInfo.msisdn +"; error: Number is not a Dealer");
+			return;
+		}
+        requestInfo.dealerInfo = dealerInfo;
+        TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
         TransactionRecord transactionRecord=requestInfo.transactionRecord;
-        long refundAmount=agentRequest.refund_amount;
+        
+        long refundAmount=old_transactionRecord.balance_changed_amount;
+        /*
         if(  refundAmount > dealerInfo.balance  ){
             refundAmount= ( dealerInfo.balance/Config.MULTIPLIER)*Config.MULTIPLIER;
         }
-
+		*/
         agentRequest.balance_add_amount = -1*refundAmount;
         agentRequest.dealer_id = dealerInfo.id;
         updateDealer(agentRequest);

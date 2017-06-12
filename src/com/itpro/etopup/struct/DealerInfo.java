@@ -17,7 +17,7 @@ public class DealerInfo {
 	public int parent_id;
 	public Timestamp register_date;
 	public String agent_init;
-	public String agent_init_id;
+	public int agent_init_id;
 	public String agent_approved;
 	public int agent_approved_id;
 	public String name;

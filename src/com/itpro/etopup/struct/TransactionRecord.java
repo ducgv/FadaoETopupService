@@ -18,6 +18,7 @@ public class TransactionRecord {
 	public final static int TRANS_TYPE_REFUND_RECHARGE = 5;
 	public final static int TRANS_TYPE_REFUND_MOVE_STOCK = 6;
 	public final static int TRANS_TYPE_REFUND_ADD_BALANCE = 7;
+	public final static int TRANS_TYPE_CREATE_SUB_DEALER = 8;
 	
 	public final static int TRANS_STATUS_SUCCESS = 2;
 	public final static int TRANS_STATUS_FAILED = 3;
@@ -30,8 +31,12 @@ public class TransactionRecord {
 	public Timestamp date_time;
 	public String dealer_msisdn;
 	public int dealer_id;
+	public int dealer_province;
+	public int parent_id;
 	public String agent;
 	public int agent_id;
+	public String approved;
+	public int approved_id;
 	public String partner_msisdn;
 	public int partner_id;
 	public long partner_balance_before;
@@ -52,5 +57,4 @@ public class TransactionRecord {
 	public String result_description;
 	public int batch_recharge_succes;
 	public int batch_recharge_fail;
-	
 }

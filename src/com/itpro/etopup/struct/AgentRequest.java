@@ -43,6 +43,8 @@ public class AgentRequest {
 	public Timestamp req_date;
 	public String agent_username;
 	public int agent_id;
+	public String agent_approved_username;
+	public int agent_approved_id;
 	public int agent_province;
 	public String dealer_msisdn;
 	public int dealer_id;
@@ -71,18 +73,25 @@ public class AgentRequest {
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
+					"; agentApprovedUserName:"+agent_approved_username+
+					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn+
-					(dealer_parent_id!=0?"; parent_id:"+dealer_parent_id:"");
+					(dealer_parent_id!=0?"; parent_id:"+dealer_parent_id:"")+
+					"; categoryId:"+category;
 		case REQ_TYPE_ADD_BALANCE:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
+					"; agentApprovedUserName:"+agent_approved_username+
+					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn+
 					"; cash_value:"+cash_value;
 		case REQ_TYPE_REFUND:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
+					"; agentApprovedUserName:"+agent_approved_username+
+					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn+
 					"; refundMsisdn:"+refund_msisdn+
 					"; refundAmount:"+refund_amount+
@@ -91,28 +100,38 @@ public class AgentRequest {
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
+					"; agentApprovedUserName:"+agent_approved_username+
+					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn;
 		case REQ_TYPE_DEACTIVE_DEALER:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
+					"; agentApprovedUserName:"+agent_approved_username+
+					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn;
 		case REQ_TYPE_MOVE_DEALER:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
+					"; agentApprovedUserName:"+agent_approved_username+
+					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn+
 					"; dest_province_code:"+dest_province_code;
 		case REQ_TYPE_CANCEL_ADD_BALANCE:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
+					"; agentApprovedUserName:"+agent_approved_username+
+					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn+
 					"; transactionId:"+refund_transaction_id;
 		default:
 			return "AgentReq: reqType:unknown"+
 			"; agentUserName:"+agent_username+
-			"; agentId:"+agent_id;
+			"; agentId:"+agent_id+
+			"; agentApprovedUserName:"+agent_approved_username+
+			"; agentApprovedId:"+agent_approved_id;
 			
 		}
 	}
