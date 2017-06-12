@@ -4,6 +4,7 @@
 package com.itpro.etopup.main;
 
 import com.itpro.etopup.cli.ETopupCli;
+import com.itpro.etopup.process.InsertRechargeCdrRecordProcess;
 import com.itpro.etopup.process.ServiceProcess;
 import com.itpro.etopup.process.InsertSmsMTReqProcess;
 import com.itpro.etopup.process.InsertTransactionRecordProcess;
@@ -24,4 +25,6 @@ public class GlobalVars {
 	public static InsertUssdNotifyReqProcess insertUssdNotifyReqProcess = new InsertUssdNotifyReqProcess();
 	public static InsertTransactionRecordProcess insertTransactionRecordProcess = new InsertTransactionRecordProcess();
 	public static UpdateBatchRechargeElementProcess updateBatchRechargeElementProcess=new UpdateBatchRechargeElementProcess();
+	public static InsertRechargeCdrRecordProcess insertRechargeCdrRecordProcess=new InsertRechargeCdrRecordProcess();
+	
 }

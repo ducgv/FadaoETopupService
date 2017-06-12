@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Vector;
+
 import com.itpro.etopup.struct.AddBalanceRate;
 import com.itpro.etopup.struct.AgentInfo;
 import com.itpro.etopup.struct.AgentRequest;
@@ -14,6 +15,7 @@ import com.itpro.etopup.struct.CDRRecord;
 import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.MTRecord;
+import com.itpro.etopup.struct.RechargeCdrRecord;
 import com.itpro.etopup.struct.TransactionRecord;
 import com.itpro.etopup.struct.dealercmd.BatchRechargeElement;
 import com.itpro.etopup.struct.dealercmd.ChangePinCmd;
@@ -869,6 +871,33 @@ public class DbConnection extends MySQLConnection {
         ps.execute();
         ps.close();
     }
+    public void insertRecharge_cdr(RechargeCdrRecord rechargeCdrRecord) throws SQLException {
+        // TODO Auto-generated method stub
+        PreparedStatement ps = null;
+        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_sub_type`,`recharge_value`,`receiver_balance_before`,`receiver_balance_after`,`transaction_id`,`result`,`result_code`,`result_description`) "
+                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        ps=connection.prepareStatement(sql);
+        ps.setInt(1,rechargeCdrRecord.payment_transaction_id);
+        ps.setTimestamp(2,rechargeCdrRecord.date_time);
+        ps.setInt(3,rechargeCdrRecord.type);
+        ps.setString(4,rechargeCdrRecord.dealer_msisdn);
+        ps.setInt(5,rechargeCdrRecord.dealer_id);
+        ps.setInt(6,rechargeCdrRecord.balance_changed_amount);
+        ps.setLong(7,rechargeCdrRecord.balance_before);
+        ps.setLong(8,rechargeCdrRecord.balance_after);
+        ps.setString(9,rechargeCdrRecord.receiver_msidn);
+        ps.setInt(10,rechargeCdrRecord.receiver_sub_type);
+        ps.setInt(11,rechargeCdrRecord.recharge_value);
+        ps.setInt(12,rechargeCdrRecord.receiver_balance_before);
+        ps.setInt(13,rechargeCdrRecord.receiver_balance_after);
+        ps.setInt(14,rechargeCdrRecord.transaction_id);
+        ps.setInt(15,rechargeCdrRecord.result);
+        ps.setInt(16,rechargeCdrRecord.result_code);
+        ps.setString(17,rechargeCdrRecord.result_description);
+        ps.execute();
+        ps.close();
+    }
+    
 	public void insertCDRRecord(CDRRecord cdrRecord) throws SQLException {
 		// TODO Auto-generated method stub
 		PreparedStatement ps = null;

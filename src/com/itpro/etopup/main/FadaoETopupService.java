@@ -96,6 +96,10 @@ public class FadaoETopupService extends MainForm {
         GlobalVars.updateBatchRechargeElementProcess.setLogPrefix("[UpdateBatchRechargeElement] ");
         GlobalVars.updateBatchRechargeElementProcess.setLogger(logger);
         GlobalVars.updateBatchRechargeElementProcess.start();
+        
+        GlobalVars.insertRechargeCdrRecordProcess.setLogPrefix("[InsertRechargeCdrRecordProcess] ");
+        GlobalVars.insertRechargeCdrRecordProcess.setLogger(logger);
+        GlobalVars.insertRechargeCdrRecordProcess.start();
 	}
 
 	/**
