@@ -1317,15 +1317,16 @@ public class ServiceProcess extends ProcessingThread {
 					logInfo(batchRechargeCmd.getRespString());
 					String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RECEIVER_RECHARGE_SUCCESS_NOTIFY")
 								.replaceAll("<DATE_TIME>", getDateTimeFormated( new Timestamp(System.currentTimeMillis())))
-								.replaceAll("<AMOUNT>", ""+batchRechargeCmd.batch_recharge_total_amount)
-								.replaceAll("<DEALER_NUMBER> ", batchRechargeCmd.msisdn.replaceFirst("856", "0"));
+								.replaceAll("<AMOUNT>", ""+paymentPostpaidCmdResp.amount)
+								.replaceAll("<DEALER_NUMBER> ", dealerRequest.msisdn.replaceFirst("856", "0"));
 					String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECEIVER_RECHARGE_SUCCESS_NOTIFY")
-								.replaceAll("<AMOUNT>", ""+batchRechargeCmd.batch_recharge_total_amount)
-								.replaceAll("<DEALER_NUMBER> ", batchRechargeCmd.msisdn.replaceFirst("856", "0"));
+								.replaceAll("<AMOUNT>", ""+ paymentPostpaidCmdResp.amount)
+								.replaceAll("<DEALER_NUMBER> ",dealerRequest.msisdn.replaceFirst("856", "0"));
 						
 					sendSms("856"+batchRechargeCmd.currentBatchRechargeElement.recharge_msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
-		            
-		            if(batchRechargeCmd.batchRechargeElements.isEmpty()){
+					transactionRecord.balance_after=batchRechargeElement.balanceAfter;  // save for create recharge cdr
+					createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
+					if(batchRechargeCmd.batchRechargeElements.isEmpty()){
 		                onBatchRechargeDone(requestInfo);
 		            }
 		            else{
@@ -1347,6 +1348,7 @@ public class ServiceProcess extends ProcessingThread {
 					sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
 					dealerRequest.result = "CONTENT_DB_DEDUCT_FUNCTION_ERROR";
 					updateDealerRequest(requestInfo.dealerRequest);
+					createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
 					listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 				}
 			} catch (SQLException e) {
@@ -1362,6 +1364,7 @@ public class ServiceProcess extends ProcessingThread {
 				requestInfo.dealerRequest.result = "CONTENT_DB_CONNECTION_ERROR";
 				requestInfo.dealerRequest.dealer_id = requestInfo.dealerInfo.id;
 				updateDealerRequest(requestInfo.dealerRequest);
+				createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
 				listRequestProcessing.remove(requestInfo.dealerRequest.msisdn);
 				return;
 			}
@@ -1373,7 +1376,7 @@ public class ServiceProcess extends ProcessingThread {
             batchRechargeElement.result_code = paymentPostpaidCmdResp.resultCode;
             batchRechargeElement.result_string = paymentPostpaidCmdResp.resultString;
             updateBatchRechargeElement(batchRechargeElement);
-            
+            createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
             if(batchRechargeCmd.batchRechargeElements.isEmpty()){
                 onBatchRechargeDone(requestInfo);
             }
@@ -1581,13 +1584,14 @@ public class ServiceProcess extends ProcessingThread {
                     logInfo(batchRechargeCmd.getRespString());
                     String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RECEIVER_RECHARGE_SUCCESS_NOTIFY")
                                 .replaceAll("<DATE_TIME>", getDateTimeFormated( new Timestamp(System.currentTimeMillis())))
-                                .replaceAll("<AMOUNT>", ""+batchRechargeCmd.batch_recharge_total_amount)
-                                .replaceAll("<DEALER_NUMBER> ", batchRechargeCmd.msisdn.replaceFirst("856", "0"));
+                                .replaceAll("<AMOUNT>", ""+topupPrepaidCmdResp.amount)
+                                .replaceAll("<DEALER_NUMBER> ", dealerRequest.msisdn.replaceFirst("856", "0"));
                     String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECEIVER_RECHARGE_SUCCESS_NOTIFY")
-                                .replaceAll("<AMOUNT>", ""+batchRechargeCmd.batch_recharge_total_amount)
-                                .replaceAll("<DEALER_NUMBER> ", batchRechargeCmd.msisdn.replaceFirst("856", "0"));
+                                .replaceAll("<AMOUNT>", ""+topupPrepaidCmdResp.amount)
+                                .replaceAll("<DEALER_NUMBER> ", dealerRequest.msisdn.replaceFirst("856", "0"));
                         
                     sendSms("856"+batchRechargeCmd.currentBatchRechargeElement.recharge_msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
+                    transactionRecord.balance_after=batchRechargeElement.balanceAfter;  // save for create recharge cdr
                     createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_SUCCESS); 
                     if(batchRechargeCmd.batchRechargeElements.isEmpty()){
                         onBatchRechargeDone(requestInfo);
