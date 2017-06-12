@@ -8,7 +8,6 @@ import java.sql.SQLException;
 import com.itpro.etopup.db.DbConnection;
 import com.itpro.etopup.main.Config;
 import com.itpro.etopup.struct.RechargeCdrRecord;
-import com.itpro.etopup.struct.dealercmd.BatchRechargeElement;
 import com.itpro.util.MySQLConnection;
 import com.itpro.util.ProcessingThread;
 import com.itpro.util.Queue;
