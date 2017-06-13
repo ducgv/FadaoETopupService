@@ -45,7 +45,7 @@ public class AgentRequest {
 	public int agent_id;
 	public String agent_approved_username;
 	public int agent_approved_id;
-	public int agent_province;
+	public int option_dealer_province_code;
 	public String dealer_msisdn;
 	public int dealer_id;
 	public String dealer_name;

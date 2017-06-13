@@ -658,7 +658,7 @@ public class ServiceProcess extends ProcessingThread {
 					dealerInfo.name = agentRequest.dealer_name;
 					dealerInfo.parent_id = agentRequest.dealer_parent_id;
 					dealerInfo.pin_code = genRandPinCode();
-					dealerInfo.province_register = agentInitInfo.province_code;
+					dealerInfo.province_register = agentRequest.option_dealer_province_code>0?agentRequest.option_dealer_province_code:agentInitInfo.province_code;
 					dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
 					dealerInfo.web_password=agentRequest.web_password;
 					dealerInfo.category=agentRequest.category;
