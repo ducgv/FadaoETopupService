@@ -848,12 +848,12 @@ public class DbConnection extends MySQLConnection {
         }
         rs.close();
         ps.close();
-        if(batchRechargeElement!=null){
-            ps=connection.prepareStatement("UPDATE batch_recharge SET refund_status = 1 WHERE id = ?");                
-            ps.setInt(1, batchRechargeElement.id);
-            ps.execute();
-            ps.close();
-        }           
+//        if(batchRechargeElement!=null){
+//            ps=connection.prepareStatement("UPDATE batch_recharge SET refund_status = 1 WHERE id = ?");                
+//            ps.setInt(1, batchRechargeElement.id);
+//            ps.execute();
+//            ps.close();
+//        }           
         return batchRechargeElement;
     }
     public void updateBatchRechargeElement(BatchRechargeElement batchRechargeElement) throws SQLException {
