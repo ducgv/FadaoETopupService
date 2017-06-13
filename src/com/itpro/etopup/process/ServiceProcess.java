@@ -22,6 +22,7 @@ import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.DelayMoveStock;
 import com.itpro.etopup.struct.DelayRecharge;
 import com.itpro.etopup.struct.MTRecord;
+import com.itpro.etopup.struct.MoveDealerProvinceCmd;
 import com.itpro.etopup.struct.RechargeCdrRecord;
 import com.itpro.etopup.struct.RequestInfo;
 import com.itpro.etopup.struct.SmsTypes;
@@ -368,11 +369,11 @@ public class ServiceProcess extends ProcessingThread {
 
 	private void OnMoveDealer(RequestInfo requestInfo) {
 		// TODO Auto-generated method stub
-		DealerInfo dealerInfo = null;
+		DealerInfo oldDealerInfo = null;
 		AgentRequest agentRequest = requestInfo.agentRequest;
 		try {
-			dealerInfo = connection.getDealerInfo(requestInfo.msisdn);
-			requestInfo.dealerInfo = dealerInfo;
+			oldDealerInfo = connection.getDealerInfo(requestInfo.msisdn);
+			requestInfo.dealerInfo = oldDealerInfo;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
@@ -384,7 +385,7 @@ public class ServiceProcess extends ProcessingThread {
 			listRequestProcessing.remove(requestInfo.msisdn);
 			return;
 		}
-		if(dealerInfo==null){
+		if(oldDealerInfo==null){
 			agentRequest.status = AgentRequest.STATUS_FAILED;
 			agentRequest.result_description = "CONTENT_IS_NOT_DEALER";
 			logError(agentRequest.getRespString());
@@ -392,6 +393,107 @@ public class ServiceProcess extends ProcessingThread {
 			listRequestProcessing.remove(requestInfo.msisdn);
 			logInfo("AddBalance: msisdn:"+requestInfo.msisdn +"; error: Number not is Dealer");
 		}
+		
+		AgentInfo agentInitInfo = null;
+		try {
+			agentInitInfo = connection.getAgentInfo(agentRequest.agent_id);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			isConnected = false;
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_description = "GET_AGENT_INIT_INFO_FAILED";
+			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			return;
+		}
+		if(agentInitInfo == null){
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_description = "AGENT_INIT_INFO_NOT_FOUND";
+			logError(agentRequest.getRespString());
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			return;
+		}
+		AgentInfo agentApprovedInfo = null;
+		try {
+			agentApprovedInfo = connection.getAgentInfo(agentRequest.agent_approved_id);
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			isConnected = false;
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_description = "GET_AGENT_APPROVED_INFO_FAILED";
+			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			return;
+		}
+		if(agentApprovedInfo == null){
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_description = "AGENT_APPROVED_INFO_NOT_FOUND";
+			logError(agentRequest.getRespString());
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			return;
+		}
+		
+		MoveDealerProvinceCmd moveDealerProvinceCmd = new MoveDealerProvinceCmd();
+		moveDealerProvinceCmd.dealer_id = oldDealerInfo.id;
+		moveDealerProvinceCmd.new_provice_code = agentApprovedInfo.province_code;
+		moveDealerProvinceCmd.approved = agentApprovedInfo.user_name;
+		moveDealerProvinceCmd.approved_id = agentApprovedInfo.id;
+		connection.moveDealerProvice(moveDealerProvinceCmd);
+		//
+		TransactionRecord transactionRecord = createTransactionRecord();
+		transactionRecord.dealer_msisdn = requestInfo.msisdn;
+		transactionRecord.dealer_id = oldDealerInfo.id;
+		transactionRecord.dealer_province = agentInitInfo.province_code;
+		transactionRecord.balance_before = 0;
+		transactionRecord.balance_after = oldDealerInfo.balance;
+		transactionRecord.type = oldDealerInfo.parent_id>0?TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:TransactionRecord.TRANS_TYPE_CREATE_DEALER;
+		transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
+		transactionRecord.agent = agentInitInfo.user_name;
+		transactionRecord.agent_id = agentInitInfo.id;
+		transactionRecord.approved = agentApprovedInfo.user_name;
+		transactionRecord.approved_id = agentApprovedInfo.id;
+		transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
+		transactionRecord.result_description = "Register ETopup service successfully";
+		transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+		transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+		insertTransactionRecord(transactionRecord);
+		agentRequest.status = AgentRequest.STATUS_SUCCESS;
+		agentRequest.dealer_id = oldDealerInfo.id;
+		agentRequest.result_description = oldDealerInfo.parent_id>0?"CONTENT_REGISTER_SUB_DEALER_SUCCESS":"CONTENT_REGISTER_DEALER_SUCCESS";
+		agentRequest.transaction_id = transactionRecord.id;
+		updateAgentRequest(agentRequest);
+		logInfo(agentRequest.getRespString());
+		if(oldDealerInfo.parent_id>0){
+			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_SUB_DEALER_SUCCESS")
+					.replaceAll("<PIN>", oldDealerInfo.pin_code)
+					.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
+			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_SUB_DEALER_SUCCESS")
+					.replaceAll("<PIN>", oldDealerInfo.pin_code)
+					.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
+
+			sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+		}
+		else{
+			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_SUCCESS")
+					.replaceAll("<PIN>", oldDealerInfo.pin_code);
+			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_DEALER_SUCCESS")
+					.replaceAll("<PIN>", oldDealerInfo.pin_code);
+
+			sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+
+		}
+		// send web user:
+		String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
+				.replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
+				.replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
+		MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+		GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
+		logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
+		listRequestProcessing.remove(requestInfo.msisdn);
 	}
 
 	private void OnAddBalance(RequestInfo requestInfo) {

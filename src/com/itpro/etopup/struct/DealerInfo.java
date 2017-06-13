@@ -11,6 +11,13 @@ import java.sql.Timestamp;
  *
  */
 public class DealerInfo {
+	//0-not active, 1-active, 2-block 30min, 3-block unlimited time, 4-deleted
+	public static final int STATUS_NOT_ACTIVE = 0;
+	public static final int STATUS_ACTIVE = 1;
+	public static final int STATUS_BLOCK_WITH_TIME = 2;
+	public static final int STATUS_BLOCK_UNLIMIT_TIME = 3;
+	public static final int STATUS_DELETED = 4;
+	
 	public int id;
 	public String msisdn;
 	public String pin_code;

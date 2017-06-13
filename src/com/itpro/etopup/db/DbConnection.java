@@ -13,6 +13,7 @@ import com.itpro.etopup.struct.CDRRecord;
 import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.MTRecord;
+import com.itpro.etopup.struct.MoveDealerProvinceCmd;
 import com.itpro.etopup.struct.RechargeCdrRecord;
 import com.itpro.etopup.struct.TransactionRecord;
 import com.itpro.etopup.struct.dealercmd.BatchRechargeElement;
@@ -663,39 +664,41 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		PreparedStatement ps = null;		
 		ps=connection.prepareStatement("INSERT INTO dealers ("
-				+ "msisdn, pin_code, register_date, agent_approved, agent_approved_id, name, parent_id, birth_date, id_card_number, province_register, address, "
-				+ "account_balance, active,web_password,category) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
+				+ "msisdn, pin_code, register_date, agent_init, agent_init_id, agent_approved, agent_approved_id, name, parent_id, birth_date, id_card_number, province_register, address, "
+				+ "account_balance, active,web_password,category) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", Statement.RETURN_GENERATED_KEYS);
 		ps.setString(1, dealerInfo.msisdn);
 		ps.setString(2, dealerInfo.pin_code);
 		ps.setTimestamp(3, dealerInfo.register_date);
-		ps.setString(4, dealerInfo.agent_approved);
-		ps.setInt(5, dealerInfo.agent_approved_id);
+		ps.setString(4, dealerInfo.agent_init);
+		ps.setInt(5, dealerInfo.agent_init_id);
+		ps.setString(6, dealerInfo.agent_approved);
+		ps.setInt(7, dealerInfo.agent_approved_id);
 		try {
 			if(dealerInfo.name!=null)
-				ps.setBytes(6, dealerInfo.name.getBytes("UTF-8"));
+				ps.setBytes(8, dealerInfo.name.getBytes("UTF-8"));
 			else
-				ps.setString(6,null);
+				ps.setString(8,null);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
-			ps.setString(6, dealerInfo.name);
+			ps.setString(8, dealerInfo.name);
 		}
-		ps.setInt(7, dealerInfo.parent_id);
-		ps.setDate(8, dealerInfo.birth_date);
-		ps.setString(9, dealerInfo.id_card_number);
-		ps.setInt(10, dealerInfo.province_register);
+		ps.setInt(9, dealerInfo.parent_id);
+		ps.setDate(10, dealerInfo.birth_date);
+		ps.setString(11, dealerInfo.id_card_number);
+		ps.setInt(12, dealerInfo.province_register);
 		try {
 			if(dealerInfo.address!=null)
-				ps.setBytes(11, dealerInfo.address.getBytes("UTF-8"));
+				ps.setBytes(13, dealerInfo.address.getBytes("UTF-8"));
 			else
-				ps.setString(11,null);
+				ps.setString(13,null);
 		} catch (UnsupportedEncodingException e) {
 			// TODO Auto-generated catch block
-			ps.setString(11, dealerInfo.address);
+			ps.setString(13, dealerInfo.address);
 		}
-		ps.setLong(12, dealerInfo.balance);
-		ps.setInt(13, dealerInfo.active);
-	    ps.setString(14, dealerInfo.web_password);
-	    ps.setInt(15, dealerInfo.category);
+		ps.setLong(14, dealerInfo.balance);
+		ps.setInt(15, dealerInfo.active);
+	    ps.setString(16, dealerInfo.web_password);
+	    ps.setInt(17, dealerInfo.category);
 		ps.executeUpdate();
 
 		ResultSet rs = ps.getGeneratedKeys();
@@ -709,6 +712,17 @@ public class DbConnection extends MySQLConnection {
 		ps.close();
 	}
 
+	public void deleteDealer(DealerInfo dealerInfo) throws SQLException {
+		// TODO Auto-generated method stub
+		PreparedStatement ps = null;		
+		ps=connection.prepareStatement("UPDATE dealers SET account_balance = ?, active = ? WHERE id = ?");
+		ps.setLong(1, dealerInfo.balance);
+		ps.setInt(2,DealerInfo.STATUS_DELETED);
+		ps.setInt(3,dealerInfo.id);
+		ps.executeUpdate();
+		ps.close();
+	}
+	
 	public void updateAgentRequest(AgentRequest agentRequest) throws SQLException {
 		// TODO Auto-generated method stub
 		String sql = "UPDATE agent_requests SET status=?, result_description=?";;
@@ -927,5 +941,10 @@ public class DbConnection extends MySQLConnection {
 		ps.setString(16,cdrRecord.token);
 		ps.execute();
 		ps.close();
+	}
+
+	public void moveDealerProvice(MoveDealerProvinceCmd moveDealerProvinceCmd) {
+		// TODO Auto-generated method stub
+		
 	}
 }
