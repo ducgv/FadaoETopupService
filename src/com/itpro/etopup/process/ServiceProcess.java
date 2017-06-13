@@ -2615,7 +2615,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
 					transactionRecord.result_description = moveStockCmd.resultString;
 					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_MOVE_STOCK_CONSECUTIVE").replaceAll("<DELAY_TIME>", ""+Config.consecutiveTransactionDelayTime);
-					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("CONTENT_MOVE_STOCK_CONSECUTIVE").replaceAll("<DELAY_TIME>", ""+Config.consecutiveTransactionDelayTime);
+					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_MOVE_STOCK_CONSECUTIVE").replaceAll("<DELAY_TIME>", ""+Config.consecutiveTransactionDelayTime);
 					sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_MOVE_STOCK, transactionRecord.id);
 					dealerRequest.result = "CONTENT_MOVE_STOCK_CONSECUTIVE";
 					dealerRequest.dealer_id = dealerInfo.id;
@@ -2787,7 +2787,7 @@ public class ServiceProcess extends ProcessingThread {
 						if(moveStockCmd.db_return_code==0){
 							DelayMoveStock delayMoveStock = new DelayMoveStock();
 							delayMoveStock.amount = moveStockCmd.amount;
-							listDelayMoveStocks.put(moveStockCmd.msisdn+"_"+moveStockCmd.receiverMsisdn, delayMoveStock);
+							listDelayMoveStocks.put(moveStockCmd.msisdn+"_"+receiverMsisdn, delayMoveStock);
 							transactionRecord.balance_after = moveStockCmd.balanceAfter;
 							transactionRecord.partner_balance_after = moveStockCmd.receiverBalanceAfter;
 							transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
