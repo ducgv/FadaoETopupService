@@ -360,14 +360,14 @@ public class ServiceProcess extends ProcessingThread {
 		case AgentRequest.REQ_TYPE_CANCEL_ADD_BALANCE:
 			onRefund(requestInfo);
 		    break;
-		case AgentRequest.REQ_TYPE_MOVE_DEALER:
-			OnMoveDealer(requestInfo);
+		case AgentRequest.REQ_TYPE_MOVE_DEALER_PROVINCE:
+			OnMoveDealerProvince(requestInfo);
 		default:
 			break;
 		}
 	}
 
-	private void OnMoveDealer(RequestInfo requestInfo) {
+	private void OnMoveDealerProvince(RequestInfo requestInfo) {
 		// TODO Auto-generated method stub
 		DealerInfo oldDealerInfo = null;
 		AgentRequest agentRequest = requestInfo.agentRequest;
@@ -443,7 +443,7 @@ public class ServiceProcess extends ProcessingThread {
 		moveDealerProvinceCmd.approved = agentApprovedInfo.user_name;
 		moveDealerProvinceCmd.approved_id = agentApprovedInfo.id;
 		try {
-			connection.moveDealerProvice(moveDealerProvinceCmd);
+			connection.moveDealerProvince(moveDealerProvinceCmd);
 			if(moveDealerProvinceCmd.return_code==0){
 				TransactionRecord transactionRecord = createTransactionRecord();
 				transactionRecord.dealer_msisdn = requestInfo.msisdn;
@@ -458,6 +458,8 @@ public class ServiceProcess extends ProcessingThread {
 				transactionRecord.agent_id = agentInitInfo.id;
 				transactionRecord.approved = agentApprovedInfo.user_name;
 				transactionRecord.approved_id = agentApprovedInfo.id;
+				transactionRecord.dealer_new_id = moveDealerProvinceCmd.new_dealer_id;
+				transactionRecord.dealer_new_province = moveDealerProvinceCmd.new_provice_code;
 				transactionRecord.result_description = "Move dealer province successfully";
 				transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 				transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
@@ -481,7 +483,7 @@ public class ServiceProcess extends ProcessingThread {
 				// send web user:
 				String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
 						.replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
-						.replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
+						.replaceAll("<WEB_PASSWORD>", oldDealerInfo.web_password);
 				MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_MOVE_DEALER_PROVINCE, transactionRecord.id);
 				GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
 				logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
@@ -593,11 +595,11 @@ public class ServiceProcess extends ProcessingThread {
 					
 					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_ADD_BALANCE_SUCCESS")
 							.replaceAll("<AMOUNT>", ""+agentRequest.balance_add_amount)
-							.replaceAll("<TRANS_ID>", ""+transactionRecord.id)
+							.replaceAll("<TRANS_ID>", "RDA-"+transactionRecord.id)
 							.replaceAll("<BALANCE>", ""+dealerInfo.balance);
 					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_ADD_BALANCE_SUCCESS")
 							.replaceAll("<AMOUNT>", ""+agentRequest.balance_add_amount)
-							.replaceAll("<TRANS_ID>", ""+transactionRecord.id)
+							.replaceAll("<TRANS_ID>", "RDA-"+transactionRecord.id)
 							.replaceAll("<BALANCE>", ""+dealerInfo.balance);
 					sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_ADD_BALANCE, transactionRecord.id);
 					
@@ -1082,22 +1084,22 @@ public class ServiceProcess extends ProcessingThread {
                             .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
                             .replaceAll("<RECEIVER_NUMBER>", moveStockCmd.dealerInfo.msisdn)
                             .replaceAll("<BALANCE>", ""+moveStockCmd.balanceAfter)
-                            .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id);
+                            .replaceAll("<TRANS_ID>", "MS-"+requestInfo.old_transactionRecord.id);
                     String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_MOVE_STOCK_SUCCESS")
                             .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
                             .replaceAll("<RECEIVER_NUMBER>", moveStockCmd.dealerInfo.msisdn)
                              .replaceAll("<BALANCE>", ""+moveStockCmd.balanceAfter)
-                            .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id);
+                            .replaceAll("<TRANS_ID>", "MS-"+requestInfo.old_transactionRecord.id);
                     sendSms(requestInfo.dealerInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_REFUND_MOVE_STOCK, transactionRecord.id);
                     
                     String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_RECEIVER_MOVE_STOCK_SUCCESS_NOTIFY")
                             .replaceAll("<DATE_TIME>", getDateTimeFormated(transactionRecord.date_time))
                             .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
-                            .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id)
+                            .replaceAll("<TRANS_ID>", "MS-"+requestInfo.old_transactionRecord.id)
                             .replaceAll("<DEALER>", old_transactionRecord.dealer_msisdn.replaceFirst("856", "0"));
                     String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECEIVER_MOVE_STOCK_SUCCESS_NOTIFY")
                             .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
-                            .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id)
+                            .replaceAll("<TRANS_ID>", "MS-"+requestInfo.old_transactionRecord.id)
                             .replaceAll("<DEALER>", old_transactionRecord.dealer_msisdn.replaceFirst("856", "0"));
                     sendSms(receiverInfo.msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_REFUND_MOVE_STOCK, transactionRecord.id);
                     
@@ -1216,11 +1218,11 @@ public class ServiceProcess extends ProcessingThread {
                 .replaceAll("<DATE_TIME>", getDateTimeFormated(transactionRecord.date_time))
                 .replaceAll("<AMOUNT>", ""+refundAmount)
                 .replaceAll("<BALANCE>", ""+transactionRecord.balance_after)
-                .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id);
+                .replaceAll("<TRANS_ID>", "RDA-"+requestInfo.old_transactionRecord.id);
         String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_ADD_BALANCE_SUCCESS")
                 .replaceAll("<AMOUNT>", ""+refundAmount)
                 .replaceAll("<BALANCE>", ""+transactionRecord.balance_after)
-                .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id);
+                .replaceAll("<TRANS_ID>", "RDA-"+requestInfo.old_transactionRecord.id);
         sendSms(requestInfo.dealerInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_REFUND_MOVE_STOCK, transactionRecord.id);
         
         
@@ -1299,7 +1301,7 @@ public class ServiceProcess extends ProcessingThread {
 				connection.deductBalance(rechargeCmd);
 				if(rechargeCmd.db_return_code==0){
 					DelayRecharge delayRecharge = new DelayRecharge();
-					delayRecharge.amount = delayRecharge.amount;
+					delayRecharge.amount = paymentPostpaidCmdResp.amount;
 					listDelayRecharges.put(paymentPostpaidCmdResp.msisdn+"_"+paymentPostpaidCmdResp.rechargeMsisdn, delayRecharge);
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 					transactionRecord.balance_after = rechargeCmd.balanceAfter;
@@ -1314,7 +1316,7 @@ public class ServiceProcess extends ProcessingThread {
 								.replaceAll("<DATE_TIME>", getDateTimeFormated(transactionRecord.date_time))
 								.replaceAll("<AMOUNT>", ""+rechargeCmd.amount)
 								.replaceAll("<BALANCE>", ""+rechargeCmd.balanceAfter)
-								.replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+								.replaceAll("<TRANS_ID>", "RS-"+transactionRecord.id);
 						String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECHARGE_OWNER_SUCCESS").replaceAll("<AMOUNT>", ""+rechargeCmd.amount);
 						sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RECHARGE, transactionRecord.id);
 						dealerRequest.result = "CONTENT_RECHARGE_OWNER_SUCCESS";
@@ -1325,7 +1327,7 @@ public class ServiceProcess extends ProcessingThread {
 								.replaceAll("<AMOUNT>", ""+rechargeCmd.amount)
 								.replaceAll("<RECEIVER_NUMBER>", rechargeCmd.rechargeMsisdn)
 								.replaceAll("<BALANCE>", ""+rechargeCmd.balanceAfter)
-								.replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+								.replaceAll("<TRANS_ID>", "RS-"+transactionRecord.id);
 						String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RECHARGE_OTHER_SUCCESS")
 								.replaceAll("<AMOUNT>", ""+rechargeCmd.amount)
 								.replaceAll("<RECEIVER_NUMBER>", rechargeCmd.rechargeMsisdn);
@@ -1525,7 +1527,7 @@ public class ServiceProcess extends ProcessingThread {
 				connection.deductBalance(rechargeCmd);
 				if(rechargeCmd.db_return_code==0){
 					DelayRecharge delayRecharge = new DelayRecharge();
-					delayRecharge.amount = delayRecharge.amount;
+					delayRecharge.amount = topupPrepaidCmdResp.amount;
 					listDelayRecharges.put(topupPrepaidCmdResp.msisdn+"_"+topupPrepaidCmdResp.rechargeMsisdn, delayRecharge);
 					transactionRecord.balance_changed_amount = -1*rechargeCmd.amount;
 					transactionRecord.balance_after = rechargeCmd.balanceAfter;
@@ -1943,7 +1945,7 @@ public class ServiceProcess extends ProcessingThread {
                 .replaceAll("<TOTAL_FAIL_SUB>",
                         batchRechargeCmd.recharge_failed + "")
                 .replaceAll("<BALANCE>", "" + transactionRecord.balance_after )
-                .replaceAll("<TRANS_ID>", "" + transactionRecord.id);
+                .replaceAll("<TRANS_ID>", "BR-" + transactionRecord.id);
         contentUssd = contentUssd
                 .replaceAll("<DATE_TIME>",
                         getDateTimeFormated(transactionRecord.date_time))
@@ -1952,7 +1954,7 @@ public class ServiceProcess extends ProcessingThread {
                 .replaceAll("<TOTAL_SUCCESS_SUB>",  batchRechargeCmd.recharge_success + "")
                 .replaceAll("<TOTAL_FAIL_SUB>", batchRechargeCmd.recharge_failed + "")
                 .replaceAll("<BALANCE>", "" + transactionRecord.balance_after)
-                .replaceAll("<TRANS_ID>", "" + transactionRecord.id);
+                .replaceAll("<TRANS_ID>", "BR-" + transactionRecord.id);
         sendSms(dealerRequest.msisdn, contentSms, contentUssd, SmsTypes.SMS_TYPE_BATCH_RECHARGE, transactionRecord.id);
         updateDealerRequest(dealerRequest);
         listRequestProcessing.remove(requestInfo.msisdn);
@@ -2164,17 +2166,17 @@ public class ServiceProcess extends ProcessingThread {
                     .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
                     .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn)
                     .replaceAll("<BALANCE>", ""+  transactionRecord.balance_after)
-                    .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id);
+                    .replaceAll("<TRANS_ID>", "RS-"+requestInfo.old_transactionRecord.id);
             String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECHARGE_DEALER_NOTIFY")
                     .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
-                    .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id)
+                    .replaceAll("<TRANS_ID>", "RS-"+requestInfo.old_transactionRecord.id)
                     .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn);
             sendSms(requestInfo.old_transactionRecord.dealer_msisdn, content, ussdContent, SmsTypes.SMS_TYPE_REFUND_RECHARGE, transactionRecord.id);
          
             String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_RECHARGE_SUBSCRIBER_NOTIFY")
                     .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
                     .replaceAll("<DEALER_NUMBER>", ""+ requestInfo.old_transactionRecord.dealer_msisdn)
-                    .replaceAll("<TRANS_ID>", ""+requestInfo.old_transactionRecord.id);
+                    .replaceAll("<TRANS_ID>", "RS-"+requestInfo.old_transactionRecord.id);
             String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECHARGE_SUBSCRIBER_NOTIFY")
                     .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
                     .replaceAll("<DEALER_NUMBER>", ""+ requestInfo.old_transactionRecord.dealer_msisdn);
@@ -2799,7 +2801,7 @@ public class ServiceProcess extends ProcessingThread {
 									.replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
 									.replaceAll("<RECEIVER_NUMBER>", moveStockCmd.receiverMsisdn)
 									.replaceAll("<BALANCE>", ""+moveStockCmd.balanceAfter)
-									.replaceAll("<TRANS_ID>", ""+transactionRecord.id);
+									.replaceAll("<TRANS_ID>", "MS-"+transactionRecord.id);
 							String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_MOVE_STOCK_SUCCESS")
 									.replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
 									.replaceAll("<RECEIVER_NUMBER>", moveStockCmd.receiverMsisdn);

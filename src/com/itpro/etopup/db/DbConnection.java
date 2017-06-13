@@ -118,7 +118,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, province_register, account_balance, parent_id, category from dealers where msisdn = ? and active IN (1,2,3)");
+				"select id, msisdn, pin_code, web_password, province_register, account_balance, parent_id, category from dealers where msisdn = ? and active IN (1,2,3)");
 		ps.setString(1, msisdn);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -127,6 +127,7 @@ public class DbConnection extends MySQLConnection {
 			dealerInfo.id = rs.getInt("id");
 			dealerInfo.msisdn = rs.getString("msisdn");
 			dealerInfo.pin_code = rs.getString("pin_code");
+			dealerInfo.web_password = rs.getString("web_password");
 			dealerInfo.province_register = rs.getInt("province_register");
 			dealerInfo.balance = rs.getInt("account_balance");
 			dealerInfo.parent_id = rs.getInt("parent_id");
@@ -979,7 +980,7 @@ public class DbConnection extends MySQLConnection {
 		ps.close();
 	}
 
-	public void moveDealerProvice(MoveDealerProvinceCmd moveDealerProvinceCmd) throws SQLException {
+	public void moveDealerProvince(MoveDealerProvinceCmd moveDealerProvinceCmd) throws SQLException {
 		// TODO Auto-generated method stub
 		String sql = "{call move_dealer_province (?, ?, ?, ?, ?, ?)}";
 		CallableStatement stmt = null;
@@ -991,8 +992,8 @@ public class DbConnection extends MySQLConnection {
 		stmt.registerOutParameter(5, java.sql.Types.INTEGER);
 		stmt.registerOutParameter(6, java.sql.Types.INTEGER);
 		stmt.execute();
-		moveDealerProvinceCmd.return_code = stmt.getInt(3);
-		moveDealerProvinceCmd.new_dealer_id = stmt.getInt(4);
+		moveDealerProvinceCmd.return_code = stmt.getInt(5);
+		moveDealerProvinceCmd.new_dealer_id = stmt.getInt(6);
 		stmt.close();
 	}
 }
