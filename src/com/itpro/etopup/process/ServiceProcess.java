@@ -14,7 +14,6 @@ import java.util.Vector;
 import com.itpro.etopup.db.DbConnection;
 import com.itpro.etopup.main.Config;
 import com.itpro.etopup.main.GlobalVars;
-import com.itpro.etopup.struct.AddBalanceRate;
 import com.itpro.etopup.struct.AgentInfo;
 import com.itpro.etopup.struct.AgentRequest;
 import com.itpro.etopup.struct.ChargingCmd;
@@ -238,15 +237,6 @@ public class ServiceProcess extends ProcessingThread {
 			logError("Load ServiceConfigs error:" + MySQLConnection.getSQLExceptionString(e));
 			isConnected = false;
 		}
-		if(Config.addBalanceRates==null){
-			try {
-				Config.addBalanceRates = connection.getConfigAddBalanceRate();
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				logError("Load AddBalanceRate error:" + MySQLConnection.getSQLExceptionString(e));
-				isConnected = false;
-			}
-		}
 	}
 
 	private void Connect() {
@@ -460,27 +450,9 @@ public class ServiceProcess extends ProcessingThread {
 				listRequestProcessing.remove(requestInfo.msisdn);
 				return;
 			}
-			else if(!Config.addBalanceRates.isEmpty()){
-				AddBalanceRate addBalanceRate = null;
-				for(AddBalanceRate tmp:Config.addBalanceRates){
-					logInfo(tmp.toString());
-					if(requestInfo.agentRequest.cash_value<tmp.cashLevel){
-						addBalanceRate = tmp;
-						break;
-					}
-				}
-				if(addBalanceRate == null){
-					agentRequest.status = AgentRequest.STATUS_FAILED;
-					agentRequest.result_description = "CONTENT_NOT_FOUND_ADD_BALANCE_RATE";
-					logError(agentRequest.getRespString());
-					updateAgentRequest(agentRequest);
-					listRequestProcessing.remove(requestInfo.msisdn);
-					return;
-				}
-				else{
-					logInfo(addBalanceRate.toString());
+			else {
 					TransactionRecord transactionRecord = createTransactionRecord();
-					agentRequest.balance_add_amount = new Double(agentRequest.cash_value*addBalanceRate.rate/100).longValue();
+					agentRequest.balance_add_amount = agentRequest.addBalanceInfo.cash_value+agentRequest.addBalanceInfo.commision_value;
 					agentRequest.dealer_id = dealerInfo.id;
 					transactionRecord.balance_before = dealerInfo.balance;
 					dealerInfo.balance += agentRequest.balance_add_amount;
@@ -493,7 +465,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
 					transactionRecord.agent = agentRequest.agent_username;
 					transactionRecord.agent_id = agentRequest.agent_id;
-					transactionRecord.cash_value = agentRequest.cash_value;
+					transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
 					transactionRecord.result_description = "Add ETopup balance successfully";
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
@@ -516,7 +488,6 @@ public class ServiceProcess extends ProcessingThread {
 					sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_ADD_BALANCE, transactionRecord.id);
 					
 					listRequestProcessing.remove(requestInfo.msisdn);
-				}
 			}
 		}
 	}
@@ -623,98 +594,77 @@ public class ServiceProcess extends ProcessingThread {
 				return;
 			}
 			
-			if(Config.addBalanceRates!=null && !Config.addBalanceRates.isEmpty()){
-				AddBalanceRate addBalanceRate = null;
-				for(AddBalanceRate tmp:Config.addBalanceRates){
-					logInfo(tmp.toString());
-					if(requestInfo.agentRequest.cash_value<tmp.cashLevel){
-						addBalanceRate = tmp;
-						break;
-					}
-				}
-				if(addBalanceRate == null){
-					agentRequest.status = AgentRequest.STATUS_FAILED;
-					agentRequest.result_description = "CONTENT_NOT_FOUND_ADD_BALANCE_RATE";
-					logError(agentRequest.getRespString());
-					updateAgentRequest(agentRequest);
-					listRequestProcessing.remove(requestInfo.msisdn);
-					return;
-				}
-				else{
-					logInfo(addBalanceRate.toString());
-					agentRequest.balance_add_amount = new Double(agentRequest.cash_value*addBalanceRate.rate/100).longValue();
-					dealerInfo = new DealerInfo();
-					dealerInfo.active = 1;
-					dealerInfo.address = agentRequest.dealer_address;
-					dealerInfo.agent_init = agentInitInfo.user_name;
-					dealerInfo.agent_init_id = agentInitInfo.id;
-					dealerInfo.agent_approved = agentApprovedInfo.user_name;
-					dealerInfo.agent_approved_id = agentApprovedInfo.id;
-					dealerInfo.balance = agentRequest.balance_add_amount;
-					dealerInfo.birth_date = agentRequest.dealer_birthdate;
-					dealerInfo.id_card_number = agentRequest.dealer_id_card_number;
-					dealerInfo.msisdn = agentRequest.dealer_msisdn;
-					dealerInfo.name = agentRequest.dealer_name;
-					dealerInfo.parent_id = agentRequest.dealer_parent_id;
-					dealerInfo.pin_code = genRandPinCode();
-					dealerInfo.province_register = agentRequest.option_dealer_province_code>0?agentRequest.option_dealer_province_code:agentInitInfo.province_code;
-					dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
-					dealerInfo.web_password=agentRequest.web_password;
-					dealerInfo.category=agentRequest.category;
-					insertDealer(dealerInfo);
-					
-					TransactionRecord transactionRecord = createTransactionRecord();
-					transactionRecord.dealer_msisdn = requestInfo.msisdn;
-					transactionRecord.dealer_id = dealerInfo.id;
-					transactionRecord.dealer_province = agentInitInfo.province_code;
-					transactionRecord.balance_before = 0;
-					transactionRecord.balance_after = dealerInfo.balance;
-					transactionRecord.type = dealerInfo.parent_id>0?TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:TransactionRecord.TRANS_TYPE_CREATE_DEALER;
-					transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
-					transactionRecord.agent = agentInitInfo.user_name;
-					transactionRecord.agent_id = agentInitInfo.id;
-					transactionRecord.approved = agentApprovedInfo.user_name;
-					transactionRecord.approved_id = agentApprovedInfo.id;
-					transactionRecord.cash_value = agentRequest.cash_value;
-					transactionRecord.result_description = "Register ETopup service successfully";
-					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
-					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
-					insertTransactionRecord(transactionRecord);
-					agentRequest.status = AgentRequest.STATUS_SUCCESS;
-					agentRequest.dealer_id = dealerInfo.id;
-					agentRequest.result_description = dealerInfo.parent_id>0?"CONTENT_REGISTER_SUB_DEALER_SUCCESS":"CONTENT_REGISTER_DEALER_SUCCESS";
-					agentRequest.transaction_id = transactionRecord.id;
-					updateAgentRequest(agentRequest);
-					logInfo(agentRequest.getRespString());
-					if(dealerInfo.parent_id>0){
-						String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_SUB_DEALER_SUCCESS")
-								.replaceAll("<PIN>", dealerInfo.pin_code)
-								.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
-						String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_SUB_DEALER_SUCCESS")
-								.replaceAll("<PIN>", dealerInfo.pin_code)
-								.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
+			agentRequest.balance_add_amount = agentRequest.addBalanceInfo.cash_value+agentRequest.addBalanceInfo.commision_value;
+			dealerInfo = new DealerInfo();
+			dealerInfo.active = 1;
+			dealerInfo.address = agentRequest.dealer_address;
+			dealerInfo.agent_init = agentInitInfo.user_name;
+			dealerInfo.agent_init_id = agentInitInfo.id;
+			dealerInfo.agent_approved = agentApprovedInfo.user_name;
+			dealerInfo.agent_approved_id = agentApprovedInfo.id;
+			dealerInfo.balance = agentRequest.balance_add_amount;
+			dealerInfo.birth_date = agentRequest.dealer_birthdate;
+			dealerInfo.id_card_number = agentRequest.dealer_id_card_number;
+			dealerInfo.msisdn = agentRequest.dealer_msisdn;
+			dealerInfo.name = agentRequest.dealer_name;
+			dealerInfo.parent_id = agentRequest.dealer_parent_id;
+			dealerInfo.pin_code = genRandPinCode();
+			dealerInfo.province_register = agentRequest.option_dealer_province_code>0?agentRequest.option_dealer_province_code:agentInitInfo.province_code;
+			dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
+			dealerInfo.web_password=agentRequest.web_password;
+			dealerInfo.category=agentRequest.category;
+			insertDealer(dealerInfo);
 
-						sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
-					}
-					else{
-						String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_SUCCESS")
-								.replaceAll("<PIN>", dealerInfo.pin_code);
-						String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_DEALER_SUCCESS")
-								.replaceAll("<PIN>", dealerInfo.pin_code);
+			TransactionRecord transactionRecord = createTransactionRecord();
+			transactionRecord.dealer_msisdn = requestInfo.msisdn;
+			transactionRecord.dealer_id = dealerInfo.id;
+			transactionRecord.dealer_province = agentInitInfo.province_code;
+			transactionRecord.balance_before = 0;
+			transactionRecord.balance_after = dealerInfo.balance;
+			transactionRecord.type = dealerInfo.parent_id>0?TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:TransactionRecord.TRANS_TYPE_CREATE_DEALER;
+			transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
+			transactionRecord.agent = agentInitInfo.user_name;
+			transactionRecord.agent_id = agentInitInfo.id;
+			transactionRecord.approved = agentApprovedInfo.user_name;
+			transactionRecord.approved_id = agentApprovedInfo.id;
+			transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
+			transactionRecord.result_description = "Register ETopup service successfully";
+			transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+			transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+			insertTransactionRecord(transactionRecord);
+			agentRequest.status = AgentRequest.STATUS_SUCCESS;
+			agentRequest.dealer_id = dealerInfo.id;
+			agentRequest.result_description = dealerInfo.parent_id>0?"CONTENT_REGISTER_SUB_DEALER_SUCCESS":"CONTENT_REGISTER_DEALER_SUCCESS";
+			agentRequest.transaction_id = transactionRecord.id;
+			updateAgentRequest(agentRequest);
+			logInfo(agentRequest.getRespString());
+			if(dealerInfo.parent_id>0){
+				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_SUB_DEALER_SUCCESS")
+						.replaceAll("<PIN>", dealerInfo.pin_code)
+						.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
+				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_SUB_DEALER_SUCCESS")
+						.replaceAll("<PIN>", dealerInfo.pin_code)
+						.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
 
-						sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
-
-					}
-					// send web user:
-					String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
-                            .replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
-                            .replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
-			       MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
-			       GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
-			       logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
-					listRequestProcessing.remove(requestInfo.msisdn);
-				}
+				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
 			}
+			else{
+				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_SUCCESS")
+						.replaceAll("<PIN>", dealerInfo.pin_code);
+				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_DEALER_SUCCESS")
+						.replaceAll("<PIN>", dealerInfo.pin_code);
+
+				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+
+			}
+			// send web user:
+			String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
+					.replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
+					.replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
+			MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+			GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
+			logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
+			listRequestProcessing.remove(requestInfo.msisdn);
 		}
 	}
 
@@ -826,7 +776,7 @@ public class ServiceProcess extends ProcessingThread {
         //transactionRecord.recharge_value = rechargeCmd.amount;
         transactionRecord.agent = agentRequest.agent_username;
         transactionRecord.agent_id = agentRequest.agent_id;
-        transactionRecord.cash_value = agentRequest.cash_value;
+        transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
         transactionRecord.refund_transaction_id=old_transactionRecord.id;
         transactionRecord.transaction_amount_req=agentRequest.refund_amount;
         agentRequest.transaction_id=transactionRecord.id;

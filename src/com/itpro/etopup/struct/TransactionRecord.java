@@ -48,7 +48,6 @@ public class TransactionRecord {
 	public long transaction_amount_req;
 	public long balance_changed_amount = 0;
 	public long balance_after;
-	public long cash_value;
 	public int refund_transaction_id;
 	public int refund_status;
 	public int batch_recharge_id;
@@ -56,4 +55,5 @@ public class TransactionRecord {
 	public String result_description;
 	public int batch_recharge_succes;
 	public int batch_recharge_fail;
+	public AddBalanceInfo addBalanceInfo;
 }

@@ -56,8 +56,6 @@ public class AgentRequest {
 	public String dealer_address;
 	public long balance_add_amount;
 	public int dest_province_code;
-	public long cash_value;
-	public String invoice_code;
 	public int refund_transaction_id;
 	public String refund_msisdn;
 	public int refund_amount;
@@ -66,6 +64,7 @@ public class AgentRequest {
 	public int transaction_id;
 	public String web_password;
 	public int category;
+	public AddBalanceInfo addBalanceInfo = new AddBalanceInfo();
 	public String getReqString() {
 		// TODO Auto-generated method stub
 		switch(req_type){
@@ -85,7 +84,8 @@ public class AgentRequest {
 					"; agentApprovedUserName:"+agent_approved_username+
 					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn+
-					"; cash_value:"+cash_value;
+					"; cash_value:"+addBalanceInfo.cash_value+
+					"; commision_value:"+addBalanceInfo.commision_value;
 		case REQ_TYPE_REFUND:
 			return "AgentReq: reqType:"+reqTypeString[req_type]+
 					"; agentUserName:"+agent_username+
@@ -152,7 +152,9 @@ public class AgentRequest {
 					"; agentUserName:"+agent_username+
 					"; agentId:"+agent_id+
 					"; msisdn:"+dealer_msisdn+
-					"; cash_value:"+cash_value+
+					"; cash_value:"+addBalanceInfo.cash_value+
+					"; commision_value:"+addBalanceInfo.commision_value+
+					"; balance_add_amount:"+balance_add_amount+
 					"; status:"+status+
 					"; result:"+result_description;
 		case REQ_TYPE_REFUND:
