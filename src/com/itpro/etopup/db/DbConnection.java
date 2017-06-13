@@ -574,7 +574,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		Vector<AgentRequest> agentRequests = new Vector<AgentRequest>();
 		PreparedStatement ps=connection.prepareStatement(
-				"SELECT id, req_type, req_date, agent_username, agent_id, approve_id, dealer_msisdn, dealer_name, dealer_parent_id, dealer_id_card_number, "
+				"SELECT id, req_type, req_date, agent_username, agent_id, approve_id, dealer_msisdn, dealer_name, dealer_parent_id, dealer_province_code, dealer_id_card_number, "
 				+ "dealer_birthdate, dealer_address, cash_value, invoice_code, "
 				+ "refund_transaction_id,refund_msisdn,refund_amount,web_password,category FROM agent_requests WHERE status = 0");
 		ps.setMaxRows(30);
@@ -601,8 +601,15 @@ public class DbConnection extends MySQLConnection {
 				agentRequest.dealer_name = rs.getString("dealer_name");
 			}
 			agentRequest.dealer_parent_id=rs.getInt("dealer_parent_id");
+			agentRequest.option_dealer_province_code = rs.getInt("dealer_province_code");
 			agentRequest.dealer_id_card_number = rs.getString("dealer_id_card_number");
-			agentRequest.dealer_birthdate = rs.getDate("dealer_birthdate");
+			try {
+				agentRequest.dealer_birthdate = rs.getDate("dealer_birthdate");
+			} catch (Exception e) {
+				// TODO: handle exception
+				agentRequest.dealer_birthdate = null;
+			}
+			
 
 			try {
 				byte[] dealer_address = rs.getBytes("dealer_address");
