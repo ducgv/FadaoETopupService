@@ -494,7 +494,6 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.agent = agentRequest.agent_username;
 					transactionRecord.agent_id = agentRequest.agent_id;
 					transactionRecord.cash_value = agentRequest.cash_value;
-					transactionRecord.invoice_code = agentRequest.invoice_code;
 					transactionRecord.result_description = "Add ETopup balance successfully";
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
@@ -677,7 +676,6 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.approved = agentApprovedInfo.user_name;
 					transactionRecord.approved_id = agentApprovedInfo.id;
 					transactionRecord.cash_value = agentRequest.cash_value;
-					transactionRecord.invoice_code = agentRequest.invoice_code;
 					transactionRecord.result_description = "Register ETopup service successfully";
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
@@ -829,7 +827,6 @@ public class ServiceProcess extends ProcessingThread {
         transactionRecord.agent = agentRequest.agent_username;
         transactionRecord.agent_id = agentRequest.agent_id;
         transactionRecord.cash_value = agentRequest.cash_value;
-        transactionRecord.invoice_code = agentRequest.invoice_code;
         transactionRecord.refund_transaction_id=old_transactionRecord.id;
         transactionRecord.transaction_amount_req=agentRequest.refund_amount;
         agentRequest.transaction_id=transactionRecord.id;

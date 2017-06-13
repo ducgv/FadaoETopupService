@@ -49,7 +49,6 @@ public class TransactionRecord {
 	public long balance_changed_amount = 0;
 	public long balance_after;
 	public long cash_value;
-	public String invoice_code;
 	public int refund_transaction_id;
 	public int refund_status;
 	public int batch_recharge_id;
