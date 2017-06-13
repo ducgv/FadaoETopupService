@@ -1021,6 +1021,7 @@ public class ServiceProcess extends ProcessingThread {
                     String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_MOVE_STOCK_SUCCESS")
                             .replaceAll("<AMOUNT>", ""+moveStockCmd.amount)
                             .replaceAll("<RECEIVER_NUMBER>", moveStockCmd.dealerInfo.msisdn)
+                             .replaceAll("<BALANCE>", ""+moveStockCmd.balanceAfter)
                             .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
                     sendSms(requestInfo.dealerInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_REFUND_MOVE_STOCK, transactionRecord.id);
                     
@@ -1466,6 +1467,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.recharge_sub_type = GetSubInfoCmd.SUBS_TYPE_PREPAID;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 					transactionRecord.result_description = "Topup Prepaid subscriber success";
+					insertTransactionRecord(transactionRecord);
 					rechargeCmd.resultCode = RequestCmd.R_OK;
 					rechargeCmd.resultString = transactionRecord.result_description;
 					logInfo(rechargeCmd.getRespString());
@@ -2108,12 +2110,11 @@ public class ServiceProcess extends ProcessingThread {
          
             String content1 = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_RECHARGE_SUBSCRIBER_NOTIFY")
                     .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
-                    .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn)
-                    .replaceAll("<BALANCE>", ""+  transactionRecord.balance_after)
+                    .replaceAll("<DEALER_NUMBER>", ""+ requestInfo.old_transactionRecord.dealer_msisdn)
                     .replaceAll("<TRANS_ID>", ""+transactionRecord.id);
             String ussdContent1 = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REFUND_RECHARGE_SUBSCRIBER_NOTIFY")
                     .replaceAll("<AMOUNT>", ""+chargingCmdResp.chargeValue)
-                    .replaceAll("<RECEIVER_NUMBER>", requestInfo.old_transactionRecord.recharge_msidn);
+                    .replaceAll("<DEALER_NUMBER>", ""+ requestInfo.old_transactionRecord.dealer_msisdn);
             sendSms(requestInfo.old_transactionRecord.dealer_msisdn, content1, ussdContent1, SmsTypes.SMS_TYPE_REFUND_RECHARGE, transactionRecord.id);
             
             try {
