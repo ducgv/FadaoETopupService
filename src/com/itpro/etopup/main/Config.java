@@ -3,9 +3,6 @@
  */
 package com.itpro.etopup.main;
 
-import java.util.Vector;
-
-import com.itpro.etopup.struct.AddBalanceRate;
 import com.itpro.util.Params;
 
 /**
@@ -35,7 +32,6 @@ public class Config {
 	public static Params[]	smsMessageContents = new Params[2];
 	public static Params[]	ussdMessageContents = new Params[2];
 	public static Params serviceConfigs = new Params();
-	public static Vector<AddBalanceRate> addBalanceRates = null;
 	
     // charging
     public static String    charging_spID;
