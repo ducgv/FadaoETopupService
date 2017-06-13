@@ -19,6 +19,7 @@ public class TransactionRecord {
 	public final static int TRANS_TYPE_REFUND_MOVE_STOCK = 6;
 	public final static int TRANS_TYPE_REFUND_ADD_BALANCE = 7;
 	public final static int TRANS_TYPE_CREATE_SUB_DEALER = 8;
+	public final static int TRANS_TYPE_MOVE_DEALER_PROVINCE = 9;
 	
 	public final static int TRANS_STATUS_SUCCESS = 2;
 	public final static int TRANS_STATUS_FAILED = 3;
@@ -37,6 +38,8 @@ public class TransactionRecord {
 	public int agent_id;
 	public String approved;
 	public int approved_id;
+	public int dealer_new_id;
+	public int dealer_new_province;
 	public String partner_msisdn;
 	public int partner_id;
 	public long partner_balance_before;

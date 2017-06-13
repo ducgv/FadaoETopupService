@@ -442,58 +442,70 @@ public class ServiceProcess extends ProcessingThread {
 		moveDealerProvinceCmd.new_provice_code = agentApprovedInfo.province_code;
 		moveDealerProvinceCmd.approved = agentApprovedInfo.user_name;
 		moveDealerProvinceCmd.approved_id = agentApprovedInfo.id;
-		connection.moveDealerProvice(moveDealerProvinceCmd);
-		//
-		TransactionRecord transactionRecord = createTransactionRecord();
-		transactionRecord.dealer_msisdn = requestInfo.msisdn;
-		transactionRecord.dealer_id = oldDealerInfo.id;
-		transactionRecord.dealer_province = agentInitInfo.province_code;
-		transactionRecord.balance_before = 0;
-		transactionRecord.balance_after = oldDealerInfo.balance;
-		transactionRecord.type = oldDealerInfo.parent_id>0?TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:TransactionRecord.TRANS_TYPE_CREATE_DEALER;
-		transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
-		transactionRecord.agent = agentInitInfo.user_name;
-		transactionRecord.agent_id = agentInitInfo.id;
-		transactionRecord.approved = agentApprovedInfo.user_name;
-		transactionRecord.approved_id = agentApprovedInfo.id;
-		transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
-		transactionRecord.result_description = "Register ETopup service successfully";
-		transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
-		transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
-		insertTransactionRecord(transactionRecord);
-		agentRequest.status = AgentRequest.STATUS_SUCCESS;
-		agentRequest.dealer_id = oldDealerInfo.id;
-		agentRequest.result_description = oldDealerInfo.parent_id>0?"CONTENT_REGISTER_SUB_DEALER_SUCCESS":"CONTENT_REGISTER_DEALER_SUCCESS";
-		agentRequest.transaction_id = transactionRecord.id;
-		updateAgentRequest(agentRequest);
-		logInfo(agentRequest.getRespString());
-		if(oldDealerInfo.parent_id>0){
-			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_SUB_DEALER_SUCCESS")
-					.replaceAll("<PIN>", oldDealerInfo.pin_code)
-					.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
-			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_SUB_DEALER_SUCCESS")
-					.replaceAll("<PIN>", oldDealerInfo.pin_code)
-					.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
+		try {
+			connection.moveDealerProvice(moveDealerProvinceCmd);
+			if(moveDealerProvinceCmd.return_code==0){
+				TransactionRecord transactionRecord = createTransactionRecord();
+				transactionRecord.dealer_msisdn = requestInfo.msisdn;
+				transactionRecord.dealer_id = oldDealerInfo.id;
+				transactionRecord.dealer_province = oldDealerInfo.province_register;
+				transactionRecord.transaction_amount_req = oldDealerInfo.balance;
+				transactionRecord.balance_changed_amount = -1*oldDealerInfo.balance;
+				transactionRecord.balance_before = oldDealerInfo.balance;
+				transactionRecord.balance_after = 0;
+				transactionRecord.type = TransactionRecord.TRANS_TYPE_MOVE_DEALER_PROVINCE;
+				transactionRecord.agent = agentInitInfo.user_name;
+				transactionRecord.agent_id = agentInitInfo.id;
+				transactionRecord.approved = agentApprovedInfo.user_name;
+				transactionRecord.approved_id = agentApprovedInfo.id;
+				transactionRecord.result_description = "Move dealer province successfully";
+				transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+				transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+				insertTransactionRecord(transactionRecord);
+				agentRequest.status = AgentRequest.STATUS_SUCCESS;
+				agentRequest.dealer_id = oldDealerInfo.id;
+				agentRequest.result_description = "CONTENT_MOVE_DEALER_PROVINCE_SUCCESS";
+				agentRequest.transaction_id = transactionRecord.id;
+				updateAgentRequest(agentRequest);
+				logInfo(agentRequest.getRespString());
+				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_MOVE_DEALER_PROVINCE_SUCCESS")
+						.replaceAll("<PIN>", oldDealerInfo.pin_code)
+						.replaceAll("<BALANCE>", ""+oldDealerInfo.balance);
+				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_MOVE_DEALER_PROVINCE_SUCCESS")
+						.replaceAll("<PIN>", oldDealerInfo.pin_code)
+						.replaceAll("<BALANCE>", ""+oldDealerInfo.balance);
 
-			sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_MOVE_DEALER_PROVINCE, transactionRecord.id);
+
+
+				// send web user:
+				String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
+						.replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
+						.replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
+				MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_MOVE_DEALER_PROVINCE, transactionRecord.id);
+				GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
+				logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
+				listRequestProcessing.remove(requestInfo.msisdn);
+			}
+			else{
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.dealer_id = oldDealerInfo.id;
+				agentRequest.result_description = "CONTENT_MOVE_DEALER_PROVINCE_FAILED";
+				updateAgentRequest(agentRequest);
+				logInfo(agentRequest.getRespString());
+				listRequestProcessing.remove(requestInfo.msisdn);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.dealer_id = oldDealerInfo.id;
+			agentRequest.result_description = "CONTENT_MOVE_DEALER_PROVINCE_FAILED";
+			updateAgentRequest(agentRequest);
+			logInfo(agentRequest.getRespString());
+			listRequestProcessing.remove(requestInfo.msisdn);
 		}
-		else{
-			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_SUCCESS")
-					.replaceAll("<PIN>", oldDealerInfo.pin_code);
-			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_DEALER_SUCCESS")
-					.replaceAll("<PIN>", oldDealerInfo.pin_code);
-
-			sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
-
-		}
-		// send web user:
-		String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
-				.replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
-				.replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
-		MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
-		GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
-		logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
-		listRequestProcessing.remove(requestInfo.msisdn);
+		
 	}
 
 	private void OnAddBalance(RequestInfo requestInfo) {
@@ -748,7 +760,7 @@ public class ServiceProcess extends ProcessingThread {
 						.replaceAll("<PIN>", dealerInfo.pin_code)
 						.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"));
 
-				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_DEALER, transactionRecord.id);
 			}
 			else{
 				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_SUCCESS")
@@ -756,14 +768,14 @@ public class ServiceProcess extends ProcessingThread {
 				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_DEALER_SUCCESS")
 						.replaceAll("<PIN>", dealerInfo.pin_code);
 
-				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_DEALER, transactionRecord.id);
 
 			}
 			// send web user:
 			String contentWebNotify = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_NOTIFY_WEB_USER")
 					.replaceAll("<DEALER>", agentRequest.dealer_msisdn.replaceFirst("856", "0"))
 					.replaceAll("<WEB_PASSWORD>", ""+ agentRequest.web_password);
-			MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_ACCOUNT, transactionRecord.id);
+			MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_CREATE_DEALER, transactionRecord.id);
 			GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
 			logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
 			listRequestProcessing.remove(requestInfo.msisdn);
