@@ -532,7 +532,7 @@ public class DbConnection extends MySQLConnection {
 			ps.execute();
 			ps.close();
 			break;
-		case TransactionRecord.TRANS_TYPE_MOVE_DEALER_PROVINCE:
+		case TransactionRecord.TRANS_TYPE_MOVE_DEALER_OLD_PROVINCE:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
 					+ "agent, agent_id, approved, approved_id, dealer_province, dealer_new_id, dealer_new_province, status, result_description) "
@@ -558,7 +558,33 @@ public class DbConnection extends MySQLConnection {
 			ps.setString(18, transactionRecord.result_description);
 			ps.execute();
 			ps.close();
-			break;  
+			break; 	
+		case TransactionRecord.TRANS_TYPE_MOVE_DEALER_NEW_PROVINCE_ACCEPTED:
+			sql = "INSERT INTO transactions"
+					+ "(id, date_time, type, dealer_msisdn, dealer_id, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
+					+ "agent, agent_id, approved, approved_id, dealer_province, status, result_description) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+			ps = connection.prepareStatement(sql);
+			ps.setInt(1, transactionRecord.id);
+			ps.setTimestamp(2, transactionRecord.date_time);
+			ps.setInt(3, transactionRecord.type);
+			ps.setString(4, transactionRecord.dealer_msisdn);
+			ps.setInt(5, transactionRecord.dealer_id);
+			ps.setLong(6, transactionRecord.transaction_amount_req);
+			ps.setLong(7, transactionRecord.balance_changed_amount);
+			ps.setLong(8, transactionRecord.balance_before);
+			ps.setLong(9, transactionRecord.balance_after);
+			ps.setString(10, transactionRecord.agent);
+			ps.setInt(11, transactionRecord.agent_id);
+			ps.setString(12, transactionRecord.approved);
+			ps.setInt(13, transactionRecord.approved_id);
+			ps.setInt(14, transactionRecord.dealer_province);
+			ps.setInt(15, transactionRecord.status);
+			ps.setString(16, transactionRecord.result_description);
+			ps.execute();
+			ps.close();
+			break; 
+			
 		default:
 			break;
 		}

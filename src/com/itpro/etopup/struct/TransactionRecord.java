@@ -19,7 +19,8 @@ public class TransactionRecord {
 	public final static int TRANS_TYPE_REFUND_MOVE_STOCK = 6;
 	public final static int TRANS_TYPE_REFUND_ADD_BALANCE = 7;
 	public final static int TRANS_TYPE_CREATE_SUB_DEALER = 8;
-	public final static int TRANS_TYPE_MOVE_DEALER_PROVINCE = 9;
+	public final static int TRANS_TYPE_MOVE_DEALER_OLD_PROVINCE = 9;
+	public final static int TRANS_TYPE_MOVE_DEALER_NEW_PROVINCE_ACCEPTED = 10;
 	
 	public final static int TRANS_STATUS_SUCCESS = 2;
 	public final static int TRANS_STATUS_FAILED = 3;

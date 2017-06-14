@@ -453,7 +453,7 @@ public class ServiceProcess extends ProcessingThread {
 				transactionRecord.balance_changed_amount = -1*oldDealerInfo.balance;
 				transactionRecord.balance_before = oldDealerInfo.balance;
 				transactionRecord.balance_after = 0;
-				transactionRecord.type = TransactionRecord.TRANS_TYPE_MOVE_DEALER_PROVINCE;
+				transactionRecord.type = TransactionRecord.TRANS_TYPE_MOVE_DEALER_OLD_PROVINCE;
 				transactionRecord.agent = agentInitInfo.user_name;
 				transactionRecord.agent_id = agentInitInfo.id;
 				transactionRecord.approved = agentApprovedInfo.user_name;
@@ -464,6 +464,9 @@ public class ServiceProcess extends ProcessingThread {
 				transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 				transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 				insertTransactionRecord(transactionRecord);
+				
+				
+				
 				agentRequest.status = AgentRequest.STATUS_SUCCESS;
 				agentRequest.dealer_id = oldDealerInfo.id;
 				agentRequest.result_code = AgentRequest.RC_MOVE_DEALER_PROVINCE_SUCCESS;
@@ -487,6 +490,25 @@ public class ServiceProcess extends ProcessingThread {
 				MTRecord mtRecord = new MTRecord(agentRequest.dealer_msisdn, contentWebNotify, SmsTypes.SMS_TYPE_MOVE_DEALER_PROVINCE, transactionRecord.id);
 				GlobalVars.insertSmsMTReqProcess.queueInsertMTReq.enqueue(mtRecord);
 				logInfo("SendSms: msisdn:" + agentRequest.dealer_msisdn + "; content:" + contentWebNotify);
+				
+				transactionRecord = createTransactionRecord();
+				transactionRecord.dealer_msisdn = requestInfo.msisdn;
+				transactionRecord.dealer_id = moveDealerProvinceCmd.new_dealer_id;
+				transactionRecord.dealer_province = moveDealerProvinceCmd.new_provice_code;
+				transactionRecord.transaction_amount_req = oldDealerInfo.balance;
+				transactionRecord.balance_changed_amount = oldDealerInfo.balance;
+				transactionRecord.balance_before = 0;
+				transactionRecord.balance_after = oldDealerInfo.balance;
+				transactionRecord.type = TransactionRecord.TRANS_TYPE_MOVE_DEALER_NEW_PROVINCE_ACCEPTED;
+				transactionRecord.agent = agentApprovedInfo.user_name;
+				transactionRecord.agent_id = agentApprovedInfo.id;
+				transactionRecord.approved = agentApprovedInfo.user_name;
+				transactionRecord.approved_id = agentApprovedInfo.id;
+				transactionRecord.result_description = "Accep dealer with new province successfully";
+				transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+				transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+				insertTransactionRecord(transactionRecord);
+				
 				listRequestProcessing.remove(requestInfo.msisdn);
 			}
 			else{
