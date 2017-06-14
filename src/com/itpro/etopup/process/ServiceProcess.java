@@ -537,9 +537,9 @@ public class ServiceProcess extends ProcessingThread {
 			logInfo("AddBalance: msisdn:"+requestInfo.msisdn +"; error: Number not is Dealer");
 		}
 		else{
-			AgentInfo agentInfo = null;
+			AgentInfo agentInitInfo = null;
 			try {
-				agentInfo = connection.getAgentInfo(agentRequest.agent_id);
+				agentInitInfo = connection.getAgentInfo(agentRequest.agent_id);
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				isConnected = false;
@@ -550,7 +550,7 @@ public class ServiceProcess extends ProcessingThread {
 				listRequestProcessing.remove(requestInfo.msisdn);
 				return;
 			}
-			if(agentInfo == null){
+			if(agentInitInfo == null){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
 				agentRequest.result_code = AgentRequest.RC_AGENT_INIT_NOT_FOUND;
 				logError(agentRequest.getRespString());
@@ -558,7 +558,29 @@ public class ServiceProcess extends ProcessingThread {
 				listRequestProcessing.remove(requestInfo.msisdn);
 				return;
 			}
-			else if(agentInfo.province_code!=dealerInfo.province_register){
+			AgentInfo agentApprovedInfo = null;
+			try {
+				agentApprovedInfo = connection.getAgentInfo(agentRequest.agent_approved_id);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				isConnected = false;
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
+				logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			if(agentApprovedInfo == null){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_AGENT_APPROVED_NOT_FOUND;
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			
+			if(agentInitInfo.province_code!=dealerInfo.province_register){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
 				agentRequest.result_code = AgentRequest.RC_DEALER_IS_OUTSIDE_PROVINCE;
 				logError(agentRequest.getRespString());
@@ -579,8 +601,10 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.type = TransactionRecord.TRANS_TYPE_ADD_BALANCE;
 					transactionRecord.transaction_amount_req = agentRequest.balance_add_amount;
 					transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
-					transactionRecord.agent = agentRequest.agent_username;
-					transactionRecord.agent_id = agentRequest.agent_id;
+					transactionRecord.agent = agentInitInfo.user_name;
+					transactionRecord.agent_id = agentInitInfo.id;
+					transactionRecord.approved = agentApprovedInfo.user_name;
+					transactionRecord.agent_id = agentApprovedInfo.id;
 					transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
 					transactionRecord.result_description = "Add ETopup balance successfully";
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
@@ -734,6 +758,7 @@ public class ServiceProcess extends ProcessingThread {
 			TransactionRecord transactionRecord = createTransactionRecord();
 			transactionRecord.dealer_msisdn = requestInfo.msisdn;
 			transactionRecord.dealer_id = dealerInfo.id;
+			transactionRecord.dealer_parent_id = dealerInfo.parent_id;
 			transactionRecord.dealer_province = agentInitInfo.province_code;
 			transactionRecord.balance_before = 0;
 			transactionRecord.balance_after = dealerInfo.balance;

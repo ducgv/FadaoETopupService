@@ -32,6 +32,7 @@ public class TransactionRecord {
 	public Timestamp date_time;
 	public String dealer_msisdn;
 	public int dealer_id;
+	public int dealer_parent_id;
 	public int dealer_province;
 	public int parent_id;
 	public String agent;
@@ -59,4 +60,5 @@ public class TransactionRecord {
 	public int batch_recharge_succes;
 	public int batch_recharge_fail;
 	public AddBalanceInfo addBalanceInfo;
+	
 }

@@ -389,26 +389,27 @@ public class DbConnection extends MySQLConnection {
 			break;
 		case TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:
 			sql = "INSERT INTO transactions"
-					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
+					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_parent_id, dealer_province, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
 					+ "agent, agent_id, approved, approved_id, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
 			ps.setInt(3, transactionRecord.type);
 			ps.setString(4, transactionRecord.dealer_msisdn);
 			ps.setInt(5, transactionRecord.dealer_id);
-			ps.setInt(6, transactionRecord.dealer_province);
-			ps.setLong(7, transactionRecord.transaction_amount_req);
-			ps.setLong(8, transactionRecord.balance_changed_amount);
-			ps.setLong(9, transactionRecord.balance_before);
-			ps.setLong(10, transactionRecord.balance_after);
-			ps.setString(11, transactionRecord.agent);
-			ps.setInt(12, transactionRecord.agent_id);
-			ps.setString(13, transactionRecord.approved);
-			ps.setInt(14, transactionRecord.approved_id);
-			ps.setInt(15, transactionRecord.status);
-			ps.setString(16, transactionRecord.result_description);
+			ps.setInt(6, transactionRecord.dealer_parent_id);
+			ps.setInt(7, transactionRecord.dealer_province);
+			ps.setLong(8, transactionRecord.transaction_amount_req);
+			ps.setLong(9, transactionRecord.balance_changed_amount);
+			ps.setLong(10, transactionRecord.balance_before);
+			ps.setLong(11, transactionRecord.balance_after);
+			ps.setString(12, transactionRecord.agent);
+			ps.setInt(13, transactionRecord.agent_id);
+			ps.setString(14, transactionRecord.approved);
+			ps.setInt(15, transactionRecord.approved_id);
+			ps.setInt(16, transactionRecord.status);
+			ps.setString(17, transactionRecord.result_description);
 			ps.execute();
 			ps.close();
 			break;
