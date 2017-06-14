@@ -6,6 +6,7 @@ package com.itpro.etopup.db;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Hashtable;
 import java.util.Vector;
 import com.itpro.etopup.struct.AgentInfo;
 import com.itpro.etopup.struct.AgentRequest;
@@ -14,6 +15,7 @@ import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.MTRecord;
 import com.itpro.etopup.struct.MoveDealerProvinceCmd;
+import com.itpro.etopup.struct.Province;
 import com.itpro.etopup.struct.RechargeCdrRecord;
 import com.itpro.etopup.struct.TransactionRecord;
 import com.itpro.etopup.struct.dealercmd.BatchRechargeElement;
@@ -958,26 +960,29 @@ public class DbConnection extends MySQLConnection {
     public void insertRecharge_cdr(RechargeCdrRecord rechargeCdrRecord) throws SQLException {
         // TODO Auto-generated method stub
         PreparedStatement ps = null;
-        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_sub_type`,`recharge_value`,`receiver_balance_before`,`receiver_balance_after`,`transaction_id`,`result`,`result_code`,`result_description`) "
-                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`dealer_category`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_province`,`receiver_sub_type`,`recharge_value`,`receiver_balance_before`,`receiver_balance_after`,`transaction_id`,`result`,`result_code`,`result_description`) "
+                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         ps=connection.prepareStatement(sql);
         ps.setInt(1,rechargeCdrRecord.payment_transaction_id);
         ps.setTimestamp(2,rechargeCdrRecord.date_time);
         ps.setInt(3,rechargeCdrRecord.type);
         ps.setString(4,rechargeCdrRecord.dealer_msisdn);
         ps.setInt(5,rechargeCdrRecord.dealer_id);
-        ps.setInt(6,rechargeCdrRecord.balance_changed_amount);
-        ps.setLong(7,rechargeCdrRecord.balance_before);
-        ps.setLong(8,rechargeCdrRecord.balance_after);
-        ps.setString(9,rechargeCdrRecord.receiver_msidn);
-        ps.setInt(10,rechargeCdrRecord.receiver_sub_type);
-        ps.setInt(11,rechargeCdrRecord.recharge_value);
-        ps.setInt(12,rechargeCdrRecord.receiver_balance_before);
-        ps.setInt(13,rechargeCdrRecord.receiver_balance_after);
-        ps.setInt(14,rechargeCdrRecord.transaction_id);
-        ps.setInt(15,rechargeCdrRecord.result);
-        ps.setInt(16,rechargeCdrRecord.result_code);
-        ps.setString(17,rechargeCdrRecord.result_description);
+        ps.setInt(6, rechargeCdrRecord.dealer_province);
+        ps.setInt(7, rechargeCdrRecord.dealer_category);
+        ps.setInt(8,rechargeCdrRecord.balance_changed_amount);
+        ps.setLong(9,rechargeCdrRecord.balance_before);
+        ps.setLong(10,rechargeCdrRecord.balance_after);
+        ps.setString(11,rechargeCdrRecord.receiver_msidn);
+        ps.setInt(12, rechargeCdrRecord.receiver_province);
+        ps.setInt(13,rechargeCdrRecord.receiver_sub_type);
+        ps.setInt(14,rechargeCdrRecord.recharge_value);
+        ps.setInt(15,rechargeCdrRecord.receiver_balance_before);
+        ps.setInt(16,rechargeCdrRecord.receiver_balance_after);
+        ps.setInt(17,rechargeCdrRecord.transaction_id);
+        ps.setInt(18,rechargeCdrRecord.result);
+        ps.setInt(19,rechargeCdrRecord.result_code);
+        ps.setString(20,rechargeCdrRecord.result_description);
         ps.execute();
         ps.close();
     }
@@ -1023,5 +1028,28 @@ public class DbConnection extends MySQLConnection {
 		moveDealerProvinceCmd.return_code = stmt.getInt(5);
 		moveDealerProvinceCmd.new_dealer_id = stmt.getInt(6);
 		stmt.close();
+	}
+	
+	public Hashtable<String, Province> loadProvinces() throws SQLException {
+		// TODO Auto-generated method stub
+		Hashtable<String, Province> provinces = new Hashtable<String, Province>();
+		PreparedStatement ps=connection.prepareStatement(
+				"SELECT msisdn_prefix, provice_code FROM msisdn_prefix");
+		ps.execute();
+		ResultSet rs = ps.getResultSet();
+
+		while(rs.next()) {
+			Province province = new Province();
+			province.msisdn_prefix = rs.getString("msisdn_prefix");
+			province.province_code = rs.getInt("provice_code");
+			provinces.put(province.msisdn_prefix, province);
+			int lenght = province.msisdn_prefix.length();
+			if(Province.MAX_MSISDN_PREFIX_LENGTH < lenght)
+				Province.MAX_MSISDN_PREFIX_LENGTH = lenght;
+		}
+		rs.close();
+		ps.close();
+		
+		return provinces;
 	}
 }

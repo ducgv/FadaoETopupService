@@ -23,6 +23,7 @@ import com.itpro.etopup.struct.DelayMoveStock;
 import com.itpro.etopup.struct.DelayRecharge;
 import com.itpro.etopup.struct.MTRecord;
 import com.itpro.etopup.struct.MoveDealerProvinceCmd;
+import com.itpro.etopup.struct.Province;
 import com.itpro.etopup.struct.RechargeCdrRecord;
 import com.itpro.etopup.struct.RequestInfo;
 import com.itpro.etopup.struct.SmsTypes;
@@ -237,6 +238,18 @@ public class ServiceProcess extends ProcessingThread {
 			// TODO Auto-generated catch block
 			logError("Load ServiceConfigs error:" + MySQLConnection.getSQLExceptionString(e));
 			isConnected = false;
+		}
+		
+		if(!Config.isProvincesLoaded){
+			try {
+				Config.provinces = connection.loadProvinces();
+				Config.isProvincesLoaded = true;
+			} catch (SQLException e1) {
+				// TODO Auto-generated catch block
+				//e1.printStackTrace();
+				Config.provinces = new Hashtable<String, Province>();
+				logError("Load Msisdn prefix by provinces error:" + MySQLConnection.getSQLExceptionString(e1));
+			}
 		}
 	}
 
@@ -1698,10 +1711,13 @@ public class ServiceProcess extends ProcessingThread {
         rechargeCdrRecord.type=type;
         rechargeCdrRecord.dealer_msisdn=transactionRecord.dealer_msisdn;
         rechargeCdrRecord.dealer_id=transactionRecord.dealer_id;
+        rechargeCdrRecord.dealer_province = requestInfo.dealerInfo.province_register;
+        rechargeCdrRecord.dealer_category = requestInfo.dealerInfo.category;
         rechargeCdrRecord.balance_changed_amount=-1*topupPrepaidCmdResp.amount;
         rechargeCdrRecord.balance_before=transactionRecord.balance_before;
         rechargeCdrRecord.balance_after=transactionRecord.balance_after;
         rechargeCdrRecord.receiver_msidn=topupPrepaidCmdResp.rechargeMsisdn;
+        rechargeCdrRecord.receiver_province = getProvinceCode(topupPrepaidCmdResp.rechargeMsisdn);
         rechargeCdrRecord.receiver_sub_type=GetSubInfoCmd.SUBS_TYPE_PREPAID;
         rechargeCdrRecord.recharge_value=topupPrepaidCmdResp.amount;
         rechargeCdrRecord.transaction_id=transactionRecord.id;
@@ -1719,10 +1735,13 @@ public class ServiceProcess extends ProcessingThread {
         rechargeCdrRecord.type=type;
         rechargeCdrRecord.dealer_msisdn=transactionRecord.dealer_msisdn;
         rechargeCdrRecord.dealer_id=transactionRecord.dealer_id;
+        rechargeCdrRecord.dealer_province = requestInfo.dealerInfo.province_register;
+        rechargeCdrRecord.dealer_category = requestInfo.dealerInfo.category;
         rechargeCdrRecord.balance_changed_amount=-1*paymentPostpaidCmd.amount;
         rechargeCdrRecord.balance_before=transactionRecord.balance_before;
         rechargeCdrRecord.balance_after=transactionRecord.balance_after;
         rechargeCdrRecord.receiver_msidn=paymentPostpaidCmd.rechargeMsisdn;
+        rechargeCdrRecord.receiver_province = getProvinceCode(paymentPostpaidCmd.rechargeMsisdn);
         rechargeCdrRecord.receiver_sub_type=GetSubInfoCmd.SUBS_TYPE_POSTPAID;
         rechargeCdrRecord.recharge_value=paymentPostpaidCmd.amount;
         rechargeCdrRecord.transaction_id=transactionRecord.id;
@@ -3149,5 +3168,17 @@ public class ServiceProcess extends ProcessingThread {
 			dealerRequest.requestCmd.dealerInfo = dealerInfo;
 			return true;
 		}
+	}
+	
+	public int getProvinceCode(String msisdn) {
+		// TODO Auto-generated constructor stub
+		for(int i=(msisdn.length()>Province.MAX_MSISDN_PREFIX_LENGTH?Province.MAX_MSISDN_PREFIX_LENGTH:msisdn.length());i>0;i--){
+			String prefix = msisdn.substring(0, i);
+			Province province = Config.provinces.get(prefix);
+			if(province!=null){
+				return province.province_code;
+			}
+		}
+		return 0;
 	}
 }

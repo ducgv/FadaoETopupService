@@ -3,6 +3,9 @@
  */
 package com.itpro.etopup.main;
 
+import java.util.Hashtable;
+
+import com.itpro.etopup.struct.Province;
 import com.itpro.util.Params;
 
 /**
@@ -32,6 +35,8 @@ public class Config {
 	public static Params[]	smsMessageContents = new Params[2];
 	public static Params[]	ussdMessageContents = new Params[2];
 	public static Params serviceConfigs = new Params();
+	public static Hashtable<String, Province> provinces = null;
+	public static boolean isProvincesLoaded = false;
 	
     // charging
     public static String    charging_spID;
