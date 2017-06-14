@@ -379,7 +379,7 @@ public class ServiceProcess extends ProcessingThread {
 			//e.printStackTrace();
 			isConnected = false;
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "GET_DEALER_INFO_FAILED";
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -387,7 +387,7 @@ public class ServiceProcess extends ProcessingThread {
 		}
 		if(oldDealerInfo==null){
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "CONTENT_IS_NOT_DEALER";
+			agentRequest.result_code = AgentRequest.RC_DEALER_NOT_FOUND;
 			logError(agentRequest.getRespString());
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -401,7 +401,7 @@ public class ServiceProcess extends ProcessingThread {
 			// TODO Auto-generated catch block
 			isConnected = false;
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "GET_AGENT_INIT_INFO_FAILED";
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -409,7 +409,7 @@ public class ServiceProcess extends ProcessingThread {
 		}
 		if(agentInitInfo == null){
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "AGENT_INIT_INFO_NOT_FOUND";
+			agentRequest.result_code = AgentRequest.RC_AGENT_INIT_NOT_FOUND;
 			logError(agentRequest.getRespString());
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -422,7 +422,7 @@ public class ServiceProcess extends ProcessingThread {
 			// TODO Auto-generated catch block
 			isConnected = false;
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "GET_AGENT_APPROVED_INFO_FAILED";
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -430,7 +430,7 @@ public class ServiceProcess extends ProcessingThread {
 		}
 		if(agentApprovedInfo == null){
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "AGENT_APPROVED_INFO_NOT_FOUND";
+			agentRequest.result_code = AgentRequest.RC_AGENT_APPROVED_NOT_FOUND;
 			logError(agentRequest.getRespString());
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -466,7 +466,7 @@ public class ServiceProcess extends ProcessingThread {
 				insertTransactionRecord(transactionRecord);
 				agentRequest.status = AgentRequest.STATUS_SUCCESS;
 				agentRequest.dealer_id = oldDealerInfo.id;
-				agentRequest.result_description = "CONTENT_MOVE_DEALER_PROVINCE_SUCCESS";
+				agentRequest.result_code = AgentRequest.RC_MOVE_DEALER_PROVINCE_SUCCESS;
 				agentRequest.transaction_id = transactionRecord.id;
 				updateAgentRequest(agentRequest);
 				logInfo(agentRequest.getRespString());
@@ -492,7 +492,7 @@ public class ServiceProcess extends ProcessingThread {
 			else{
 				agentRequest.status = AgentRequest.STATUS_FAILED;
 				agentRequest.dealer_id = oldDealerInfo.id;
-				agentRequest.result_description = "CONTENT_MOVE_DEALER_PROVINCE_FAILED";
+				agentRequest.result_code = AgentRequest.RC_MOVE_DEALER_PROVINCE_FAILED;
 				updateAgentRequest(agentRequest);
 				logInfo(agentRequest.getRespString());
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -502,7 +502,7 @@ public class ServiceProcess extends ProcessingThread {
 			//e.printStackTrace();
 			agentRequest.status = AgentRequest.STATUS_FAILED;
 			agentRequest.dealer_id = oldDealerInfo.id;
-			agentRequest.result_description = "CONTENT_MOVE_DEALER_PROVINCE_FAILED";
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 			updateAgentRequest(agentRequest);
 			logInfo(agentRequest.getRespString());
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -522,7 +522,7 @@ public class ServiceProcess extends ProcessingThread {
 			//e.printStackTrace();
 			isConnected = false;
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "GET_DEALER_INFO_FAILED";
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -530,7 +530,7 @@ public class ServiceProcess extends ProcessingThread {
 		}
 		if(dealerInfo==null){
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "CONTENT_IS_NOT_DEALER";
+			agentRequest.result_code = AgentRequest.RC_DEALER_NOT_FOUND;
 			logError(agentRequest.getRespString());
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -544,7 +544,7 @@ public class ServiceProcess extends ProcessingThread {
 				// TODO Auto-generated catch block
 				isConnected = false;
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "GET_AGENT_INFO_FAILED";
+				agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 				logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -552,7 +552,7 @@ public class ServiceProcess extends ProcessingThread {
 			}
 			if(agentInfo == null){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "AGENT_INFO_NOT_FOUND";
+				agentRequest.result_code = AgentRequest.RC_AGENT_INIT_NOT_FOUND;
 				logError(agentRequest.getRespString());
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -560,7 +560,7 @@ public class ServiceProcess extends ProcessingThread {
 			}
 			else if(agentInfo.province_code!=dealerInfo.province_register){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "DEALER_NOT_IN_PROVINCE";
+				agentRequest.result_code = AgentRequest.RC_DEALER_IS_OUTSIDE_PROVINCE;
 				logError(agentRequest.getRespString());
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -588,7 +588,7 @@ public class ServiceProcess extends ProcessingThread {
 					insertTransactionRecord(transactionRecord);
 					agentRequest.status = AgentRequest.STATUS_SUCCESS;
 					agentRequest.dealer_id = dealerInfo.id;
-					agentRequest.result_description = "CONTENT_ADD_BALANCE_SUCCESS";
+					agentRequest.result_code = AgentRequest.RC_ADD_BALANCE_SUCCESS;
 					agentRequest.transaction_id = transactionRecord.id;
 					updateAgentRequest(agentRequest);
 					logInfo(agentRequest.getRespString());
@@ -643,7 +643,7 @@ public class ServiceProcess extends ProcessingThread {
 			//e.printStackTrace();
 			isConnected = false;
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = MySQLConnection.getSQLExceptionString(e);
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 			logError(agentRequest.getRespString());
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -651,7 +651,7 @@ public class ServiceProcess extends ProcessingThread {
 		}
 		if(dealerInfo!=null){
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "CONTENT_NUMBER_IS_USING_SERVICE";
+			agentRequest.result_code = AgentRequest.RC_DEALER_EXISTS;
 			logError(agentRequest.getRespString());
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -660,7 +660,7 @@ public class ServiceProcess extends ProcessingThread {
 		else{
 			if(agentRequest.dealer_parent_id>0&&parentInfo==null){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "CONTENT_PARENT_ID_NOT_VALID";
+				agentRequest.result_code = AgentRequest.RC_PARENT_DEALER_NOT_FOUND;
 				logError(agentRequest.getRespString());
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -674,7 +674,7 @@ public class ServiceProcess extends ProcessingThread {
 				// TODO Auto-generated catch block
 				isConnected = false;
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "GET_AGENT_INFO_FAILED";
+				agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 				logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -682,7 +682,7 @@ public class ServiceProcess extends ProcessingThread {
 			}
 			if(agentInitInfo == null){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "AGENT_INIT_INFO_NOT_FOUND";
+				agentRequest.result_code = AgentRequest.RC_AGENT_INIT_NOT_FOUND;
 				logError(agentRequest.getRespString());
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -695,7 +695,7 @@ public class ServiceProcess extends ProcessingThread {
 				// TODO Auto-generated catch block
 				isConnected = false;
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "GET_AGENT_APPROVED_INFO_FAILED";
+				agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 				logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -703,7 +703,7 @@ public class ServiceProcess extends ProcessingThread {
 			}
 			if(agentApprovedInfo == null){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
-				agentRequest.result_description = "AGENT_APPROVED_INFO_NOT_FOUND";
+				agentRequest.result_code = AgentRequest.RC_AGENT_APPROVED_NOT_FOUND;
 				logError(agentRequest.getRespString());
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -750,7 +750,7 @@ public class ServiceProcess extends ProcessingThread {
 			insertTransactionRecord(transactionRecord);
 			agentRequest.status = AgentRequest.STATUS_SUCCESS;
 			agentRequest.dealer_id = dealerInfo.id;
-			agentRequest.result_description = dealerInfo.parent_id>0?"CONTENT_REGISTER_SUB_DEALER_SUCCESS":"CONTENT_REGISTER_DEALER_SUCCESS";
+			agentRequest.result_code = dealerInfo.parent_id>0?AgentRequest.RC_REGISTER_SUB_DEALER_SUCCESS:AgentRequest.RC_REGISTER_DEALER_SUCCESS;
 			agentRequest.transaction_id = transactionRecord.id;
 			updateAgentRequest(agentRequest);
 			logInfo(agentRequest.getRespString());
@@ -816,7 +816,7 @@ public class ServiceProcess extends ProcessingThread {
             //e.printStackTrace();
             isConnected = false;
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = MySQLConnection.getSQLExceptionString(e);
+            agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
             logError(agentRequest.getRespString());
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
@@ -824,7 +824,7 @@ public class ServiceProcess extends ProcessingThread {
         }
         if(old_transactionRecord==null){
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_TRANSACTION_NOT_FOUND";
+            agentRequest.result_code = AgentRequest.RC_TRANSACTION_NOT_FOUND;
             logError(agentRequest.getRespString());
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
@@ -833,7 +833,7 @@ public class ServiceProcess extends ProcessingThread {
         }
         if( old_transactionRecord.status !=TransactionRecord.TRANS_STATUS_SUCCESS){
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_TRANSACTION_NOT_SUCCESS";
+            agentRequest.result_code = AgentRequest.RC_TRANSACTION_NOT_SUCCESS;
             logError(agentRequest.getRespString());
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
@@ -842,7 +842,7 @@ public class ServiceProcess extends ProcessingThread {
         }
         if( old_transactionRecord.refund_status==TransactionRecord.TRANS_REFUNDED_STATUS && old_transactionRecord.type!=TransactionRecord.TRANS_TYPE_BATCH_RECHARGE){
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_TRANSACTION_REFUNDED";
+            agentRequest.result_code = AgentRequest.RC_TRANSACTION_REFUNDED;
             logError(agentRequest.getRespString());
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
@@ -851,7 +851,7 @@ public class ServiceProcess extends ProcessingThread {
         }
         if( agentRequest.refund_amount > Math.abs(old_transactionRecord.balance_changed_amount)){
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_REFUND_AMOUNT_GREATER_THAN_TRANSACTION_AMOUNT";
+            agentRequest.result_code = AgentRequest.RC_REFUND_AMOUNT_GREATER_THAN_TRANSACTION_AMOUNT;
             logError(agentRequest.getRespString());
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
@@ -864,7 +864,7 @@ public class ServiceProcess extends ProcessingThread {
         } catch (SQLException e) {
             isConnected = false;
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = MySQLConnection.getSQLExceptionString(e);
+            agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
             logError(agentRequest.getRespString());
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
@@ -872,7 +872,7 @@ public class ServiceProcess extends ProcessingThread {
         }
         if(dealerInfo==null){
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_DEALER_NOT_FOUND";
+            agentRequest.result_code = AgentRequest.RC_DEALER_NOT_FOUND;
             logError(agentRequest.getRespString());
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
@@ -919,7 +919,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_REFUND_TRANSACTION_TYPE_NOT_VALID";
+            agentRequest.result_code = AgentRequest.RC_REFUND_TRANSACTION_TYPE_NOT_VALID;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
@@ -962,7 +962,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_DB_CONNECTION_ERROR";
+            agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: CONTENT_DB_CONNECTION_ERROR");
@@ -978,7 +978,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_REFUND_BATCH_RECHARGE_SUB_NOT_FOUND";
+            agentRequest.result_code = AgentRequest.RC_REFUND_BATCH_RECHARGE_SUBSCRIBER_NOT_FOUND;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; Batch recharge list not found");
@@ -986,7 +986,7 @@ public class ServiceProcess extends ProcessingThread {
         }
         if( agentRequest.refund_amount > batchRechargeElement.recharge_value){
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_REFUND_AMOUNT_GREATER_THAN_RECHARGE_AMOUNT";
+            agentRequest.result_code = AgentRequest.RC_REFUND_AMOUNT_GREATER_THAN_RECHARGE_AMOUNT;
             logError(agentRequest.getRespString());
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
@@ -1020,7 +1020,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_DB_CONNECTION_ERROR";
+            agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
@@ -1035,7 +1035,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_RECEIVER_NOT_FOUND";
+            agentRequest.result_code = AgentRequest.RC_REFUND_MOVE_STOCK_RECEIVER_NOT_FOUND;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Not foud receiver.");
@@ -1074,7 +1074,7 @@ public class ServiceProcess extends ProcessingThread {
                     logInfo(moveStockCmd.getRespString());
                     
                     agentRequest.status = AgentRequest.STATUS_SUCCESS;
-                    agentRequest.result_description = "CONTENT_REFUND_MOVE_STOCK_SUCCESS";
+                    agentRequest.result_code = AgentRequest.RC_REFUND_MOVE_STOCK_SUCCESS;
                     updateAgentRequest(agentRequest);
                     listRequestProcessing.remove(requestInfo.msisdn);
                     
@@ -1124,7 +1124,7 @@ public class ServiceProcess extends ProcessingThread {
                     insertTransactionRecord(transactionRecord);
                     
                     agentRequest.status = AgentRequest.STATUS_FAILED;
-                    agentRequest.result_description = "CONTENT_DB_MOVE_STOCK_FUNCTION_ERROR";
+                    agentRequest.result_code = AgentRequest.RC_CALL_MOVE_STOCK_DB_FUNCTION_ERROR;
                     updateAgentRequest(agentRequest);
                     listRequestProcessing.remove(requestInfo.msisdn);
                     logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
@@ -1141,7 +1141,7 @@ public class ServiceProcess extends ProcessingThread {
                 insertTransactionRecord(transactionRecord);
                 
                 agentRequest.status = AgentRequest.STATUS_FAILED;
-                agentRequest.result_description = "CONTENT_DB_CONNECTION_ERROR";
+                agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
                 updateAgentRequest(agentRequest);
                 listRequestProcessing.remove(requestInfo.msisdn);
                 logInfo("Refund transaction : id:"+requestInfo.agentRequest.id +"; error: Get SubInfo Failed");
@@ -1157,7 +1157,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_RECEIVER_BALANCE_NOT_ENOUGH";
+            agentRequest.result_code = AgentRequest.RC_REFUND_MOVE_STOCK_RECEIVER_BALANCE_NOT_ENOUGH;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.id +"; error: Receiver balance is not enough.");
@@ -1177,7 +1177,7 @@ public class ServiceProcess extends ProcessingThread {
 			//e.printStackTrace();
 			isConnected = false;
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "GET_DEALER_INFO_FAILED";
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
 			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -1185,7 +1185,7 @@ public class ServiceProcess extends ProcessingThread {
 		}
 		if(dealerInfo==null){
 			agentRequest.status = AgentRequest.STATUS_FAILED;
-			agentRequest.result_description = "CONTENT_IS_NOT_DEALER";
+			agentRequest.result_code = AgentRequest.RC_DEALER_NOT_FOUND;
 			logError(agentRequest.getRespString());
 			updateAgentRequest(agentRequest);
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -1238,7 +1238,7 @@ public class ServiceProcess extends ProcessingThread {
         }
         
         agentRequest.status = AgentRequest.STATUS_SUCCESS;
-        agentRequest.result_description = "CONTENT_REFUND_ADD_BALANCE_SUCCESS";
+        agentRequest.result_code = AgentRequest.RC_REFUND_ADD_BALANCE_SUCCESS;
         updateAgentRequest(agentRequest);
         listRequestProcessing.remove(requestInfo.msisdn);
         
@@ -2001,7 +2001,7 @@ public class ServiceProcess extends ProcessingThread {
                     insertTransactionRecord(transactionRecord);
                     
                     agentRequest.status = AgentRequest.STATUS_FAILED;
-                    agentRequest.result_description = "CONTENT_BALANCE_NOT_ENOUGH";
+                    agentRequest.result_code = AgentRequest.RC_REFUND_RECHARGE_SUBSCRIBER_BALANCE_NOT_ENOUGH;
                     updateAgentRequest(agentRequest);
                     listRequestProcessing.remove(requestInfo.msisdn);
                     logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Balance is not enough.");
@@ -2027,7 +2027,7 @@ public class ServiceProcess extends ProcessingThread {
                 insertTransactionRecord(transactionRecord);
                 
                 agentRequest.status = AgentRequest.STATUS_SUCCESS;
-                agentRequest.result_description = "CONTENT_REFUND_RECHARGE_SUCCESS";
+                agentRequest.result_code = AgentRequest.RC_REFUND_RECHARGE_SUCCESS;
                 updateAgentRequest(agentRequest);
                 listRequestProcessing.remove(requestInfo.msisdn);
                 logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +" success.");
@@ -2071,7 +2071,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_GETS_SUBINFO_FAILED";
+            agentRequest.result_code = AgentRequest.RC_REFUND_RECHARGE_GET_SUBSCRIBER_INFO_FAILED;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
@@ -2088,7 +2088,7 @@ public class ServiceProcess extends ProcessingThread {
             transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
             transactionRecord.result_description = "Refund batch recharge fail.";
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_REFUND_BATCH_RECHARGE_FAIL";
+            agentRequest.result_code = AgentRequest.RC_REFUND_BATCH_RECHARGE_FAILED;
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; Refund batch recharge fail. "+batchRechargeCmd.getRespString());
         }else{
             long refundAmount=batchRechargeCmd.recharge_success_amount;
@@ -2099,7 +2099,7 @@ public class ServiceProcess extends ProcessingThread {
             transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
             transactionRecord.result_description = "Refund batch recharge success.";
             agentRequest.status = AgentRequest.STATUS_SUCCESS;
-            agentRequest.result_description = "CONTENT_REFUND_BATCH_RECHARGE_SUCCESS";
+            agentRequest.result_code = AgentRequest.RC_REFUND_BATCH_RECHARGE_SUCCESS;
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; Refund batch recharge success. "+batchRechargeCmd.getRespString());
             String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REFUND_BATCH_RECHARGE_DEALER_NOTIFY")
                     .replaceAll("<AMOUNT>", ""+refundAmount)
@@ -2157,7 +2157,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_SUCCESS;
-            agentRequest.result_description = "CONTENT_REFUND_RECHARGE_SUCCESS";
+            agentRequest.result_code = AgentRequest.RC_REFUND_RECHARGE_SUCCESS;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +" success.");
@@ -2212,7 +2212,7 @@ public class ServiceProcess extends ProcessingThread {
             insertTransactionRecord(transactionRecord);
             
             agentRequest.status = AgentRequest.STATUS_FAILED;
-            agentRequest.result_description = "CONTENT_CHARGING_FAILED";
+            agentRequest.result_code = AgentRequest.RC_REFUND_RECHARGE_CHARGING_FAILED;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: charging failed");

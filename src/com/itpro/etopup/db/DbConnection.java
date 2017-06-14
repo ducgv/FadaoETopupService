@@ -762,7 +762,7 @@ public class DbConnection extends MySQLConnection {
 	
 	public void updateAgentRequest(AgentRequest agentRequest) throws SQLException {
 		// TODO Auto-generated method stub
-		String sql = "UPDATE agent_requests SET status=?, result_description=?";;
+		String sql = "UPDATE agent_requests SET status=?, result_code = ?, result_description=?";;
 		if(agentRequest.dealer_id!=0)
 			sql+=", dealer_id=?";
 		if(agentRequest.transaction_id!=0)
@@ -772,8 +772,9 @@ public class DbConnection extends MySQLConnection {
 		PreparedStatement ps = null;
 		ps=connection.prepareStatement(sql);
 		ps.setInt(1, agentRequest.status);
-		ps.setString(2, agentRequest.result_description);
-		int index = 2;
+		ps.setInt(2, agentRequest.result_code);
+		ps.setString(3, AgentRequest.resultString[agentRequest.result_code]);
+		int index = 3;
 		if(agentRequest.dealer_id!=0)
 			ps.setInt(++index, agentRequest.dealer_id);
 	
