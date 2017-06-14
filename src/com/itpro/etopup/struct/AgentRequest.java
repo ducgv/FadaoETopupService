@@ -53,6 +53,7 @@ public class AgentRequest {
 	public static final int RC_REFUND_RECHARGE_SUBSCRIBER_BALANCE_NOT_ENOUGH 	= 27;
 	public static final int RC_REFUND_RECHARGE_GET_SUBSCRIBER_INFO_FAILED 		= 28;
 	public static final int RC_REFUND_BATCH_RECHARGE_FAILED 					= 29;
+	public static final int RC_ADD_BALANCE_ACCOUNT_IS_SUB_DEALER 				= 30;
 	
 	
 	public static String[] reqTypeString;
@@ -73,7 +74,7 @@ public class AgentRequest {
 
 		//-----------------------------------------------------------
 		
-		resultString = new String[30];		
+		resultString = new String[31];		
 		resultString[RC_REGISTER_DEALER_SUCCESS] 		= "REGISTER_DEALER_SUCCESS";
 		resultString[RC_REGISTER_SUB_DEALER_SUCCESS] 	= "REGISTER_SUB_DEALER_SUCCESS";
 		resultString[RC_ADD_BALANCE_SUCCESS] 			= "ADD_BALANCE_SUCCESS";
@@ -104,6 +105,7 @@ public class AgentRequest {
 		resultString[RC_REFUND_RECHARGE_SUBSCRIBER_BALANCE_NOT_ENOUGH] 	= "REFUND_RECHARGE_SUBSCRIBER_BALANCE_NOT_ENOUGH";
 		resultString[RC_REFUND_RECHARGE_GET_SUBSCRIBER_INFO_FAILED] 	= "REFUND_RECHARGE_GET_SUBSCRIBER_INFO_FAILED";
 		resultString[RC_REFUND_BATCH_RECHARGE_FAILED] 	= "REFUND_BATCH_RECHARGE_FAILED";
+		resultString[RC_ADD_BALANCE_ACCOUNT_IS_SUB_DEALER] 	= "ADD_BALANCE_ACCOUNT_IS_SUB_DEALER";
 	}
 	
 	public int id;

@@ -449,7 +449,7 @@ public class ServiceProcess extends ProcessingThread {
 				transactionRecord.dealer_msisdn = requestInfo.msisdn;
 				transactionRecord.dealer_id = oldDealerInfo.id;
 				transactionRecord.dealer_province = oldDealerInfo.province_register;
-				transactionRecord.transaction_amount_req = oldDealerInfo.balance;
+				transactionRecord.transaction_amount_req = -1*oldDealerInfo.balance;
 				transactionRecord.balance_changed_amount = -1*oldDealerInfo.balance;
 				transactionRecord.balance_before = oldDealerInfo.balance;
 				transactionRecord.balance_after = 0;
@@ -583,6 +583,14 @@ public class ServiceProcess extends ProcessingThread {
 			if(agentInitInfo.province_code!=dealerInfo.province_register){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
 				agentRequest.result_code = AgentRequest.RC_DEALER_IS_OUTSIDE_PROVINCE;
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			else if(dealerInfo.parent_id>0){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_ADD_BALANCE_ACCOUNT_IS_SUB_DEALER;
 				logError(agentRequest.getRespString());
 				updateAgentRequest(agentRequest);
 				listRequestProcessing.remove(requestInfo.msisdn);
@@ -764,6 +772,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.balance_after = dealerInfo.balance;
 			transactionRecord.type = dealerInfo.parent_id>0?TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:TransactionRecord.TRANS_TYPE_CREATE_DEALER;
 			transactionRecord.balance_changed_amount = agentRequest.balance_add_amount;
+			transactionRecord.transaction_amount_req = agentRequest.balance_add_amount;
 			transactionRecord.agent = agentInitInfo.user_name;
 			transactionRecord.agent_id = agentInitInfo.id;
 			transactionRecord.approved = agentApprovedInfo.user_name;
@@ -1329,6 +1338,7 @@ public class ServiceProcess extends ProcessingThread {
 					delayRecharge.amount = paymentPostpaidCmdResp.amount;
 					listDelayRecharges.put(paymentPostpaidCmdResp.msisdn+"_"+paymentPostpaidCmdResp.rechargeMsisdn, delayRecharge);
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+					transactionRecord.balance_changed_amount = -1*rechargeCmd.amount;
 					transactionRecord.balance_after = rechargeCmd.balanceAfter;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 					transactionRecord.result_description = "Payment Postpaid subscriber success";
@@ -1412,7 +1422,6 @@ public class ServiceProcess extends ProcessingThread {
 		else{
 			transactionRecord.balance_after = requestInfo.dealerInfo.balance;
 			transactionRecord.type = TransactionRecord.TRANS_TYPE_RECHARGE;
-			transactionRecord.balance_changed_amount = -1*rechargeCmd.amount;
 			transactionRecord.recharge_msidn = rechargeCmd.rechargeMsisdn;
 			transactionRecord.recharge_value = rechargeCmd.amount;
 			rechargeCmd.resultCode = RequestCmd.R_CUSTOMER_INFO_FAIL;
@@ -1554,6 +1563,7 @@ public class ServiceProcess extends ProcessingThread {
 					DelayRecharge delayRecharge = new DelayRecharge();
 					delayRecharge.amount = topupPrepaidCmdResp.amount;
 					listDelayRecharges.put(topupPrepaidCmdResp.msisdn+"_"+topupPrepaidCmdResp.rechargeMsisdn, delayRecharge);
+					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 					transactionRecord.balance_changed_amount = -1*rechargeCmd.amount;
 					transactionRecord.balance_after = rechargeCmd.balanceAfter;
 					transactionRecord.recharge_sub_type = GetSubInfoCmd.SUBS_TYPE_PREPAID;
@@ -2422,7 +2432,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.balance_changed_amount = 0;
 			transactionRecord.recharge_msidn = "";
 			transactionRecord.recharge_value = 0;
-			transactionRecord.transaction_amount_req=batchRechargeCmd.batch_recharge_total_amount;
+			transactionRecord.transaction_amount_req=-1*batchRechargeCmd.batch_recharge_total_amount;
 			transactionRecord.batch_recharge_id=batchRechargeCmd.batch_recharge_id;
 			dealerRequest.dealer_id = dealerInfo.id;
 			dealerRequest.transaction_id = transactionRecord.id;
@@ -2481,6 +2491,7 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecord.dealer_id = dealerInfo.id;
 		transactionRecord.balance_before = dealerInfo.balance;
 		transactionRecord.transaction_amount_req = -1*rechargeCmd.amount;
+		transactionRecord.balance_changed_amount = 0;
 		transactionRecord.recharge_msidn = rechargeCmd.rechargeMsisdn;
 		transactionRecord.recharge_value = rechargeCmd.amount;
 		dealerRequest.dealer_id = dealerInfo.id;
@@ -2610,8 +2621,9 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecord.type = TransactionRecord.TRANS_TYPE_MOVE_STOCK;
 		transactionRecord.dealer_msisdn = dealerInfo.msisdn;
 		transactionRecord.dealer_id = dealerInfo.id;
+		transactionRecord.transaction_amount_req = -1*moveStockCmd.amount;
 		transactionRecord.balance_before = dealerInfo.balance;
-		transactionRecord.balance_changed_amount = -1*moveStockCmd.amount;
+		transactionRecord.balance_changed_amount = 0;
 		transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 		
 		String receiverMsisdn = "";
@@ -2813,6 +2825,7 @@ public class ServiceProcess extends ProcessingThread {
 							DelayMoveStock delayMoveStock = new DelayMoveStock();
 							delayMoveStock.amount = moveStockCmd.amount;
 							listDelayMoveStocks.put(moveStockCmd.msisdn+"_"+receiverMsisdn, delayMoveStock);
+							transactionRecord.balance_changed_amount = -1*moveStockCmd.amount;
 							transactionRecord.balance_after = moveStockCmd.balanceAfter;
 							transactionRecord.partner_balance_after = moveStockCmd.receiverBalanceAfter;
 							transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
