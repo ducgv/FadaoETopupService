@@ -20,6 +20,7 @@ public class AgentRequest {
 	public static final int REQ_TYPE_DEACTIVE_DEALER = 4;
 	public static final int REQ_TYPE_MOVE_DEALER_PROVINCE = 5;
 	public static final int REQ_TYPE_CANCEL_ADD_BALANCE = 6;
+	public static final int REQ_TYPE_RESET_PIN = 7;
 
 	//-----------------------------------------------------------
 
@@ -54,7 +55,7 @@ public class AgentRequest {
 	public static final int RC_REFUND_RECHARGE_GET_SUBSCRIBER_INFO_FAILED 		= 28;
 	public static final int RC_REFUND_BATCH_RECHARGE_FAILED 					= 29;
 	public static final int RC_ADD_BALANCE_ACCOUNT_IS_SUB_DEALER 				= 30;
-	
+	public static final int RC_RESET_PIN_SUCCESS 								= 31;
 	
 	public static String[] reqTypeString;
 	public static String[] resultString;
@@ -62,8 +63,9 @@ public class AgentRequest {
 	public static final int STATUS_SUCCESS = 2;
 	public static final int STATUS_FAILED = 3;
 	
+	
 	public static void init(){
-		reqTypeString = new String[7];
+		reqTypeString = new String[8];
 		reqTypeString[REQ_TYPE_CREATE_DEALER] = "CreateDealer";
 		reqTypeString[REQ_TYPE_ADD_BALANCE] = "AddBalance";
 		reqTypeString[REQ_TYPE_REFUND] = "Refund";
@@ -71,10 +73,11 @@ public class AgentRequest {
 		reqTypeString[REQ_TYPE_DEACTIVE_DEALER] = "DeactiveDealer";
 		reqTypeString[REQ_TYPE_MOVE_DEALER_PROVINCE] = "MoveDealerProvince";
 		reqTypeString[REQ_TYPE_CANCEL_ADD_BALANCE] = "CancelAddBalance";
+		reqTypeString[REQ_TYPE_RESET_PIN] = "ResetPIN";
 
 		//-----------------------------------------------------------
 		
-		resultString = new String[31];		
+		resultString = new String[32];		
 		resultString[RC_REGISTER_DEALER_SUCCESS] 		= "REGISTER_DEALER_SUCCESS";
 		resultString[RC_REGISTER_SUB_DEALER_SUCCESS] 	= "REGISTER_SUB_DEALER_SUCCESS";
 		resultString[RC_ADD_BALANCE_SUCCESS] 			= "ADD_BALANCE_SUCCESS";
@@ -104,8 +107,9 @@ public class AgentRequest {
 		resultString[RC_REFUND_MOVE_STOCK_RECEIVER_BALANCE_NOT_ENOUGH] 	= "REFUND_MOVE_STOCK_RECEIVER_BALANCE_NOT_ENOUGH";
 		resultString[RC_REFUND_RECHARGE_SUBSCRIBER_BALANCE_NOT_ENOUGH] 	= "REFUND_RECHARGE_SUBSCRIBER_BALANCE_NOT_ENOUGH";
 		resultString[RC_REFUND_RECHARGE_GET_SUBSCRIBER_INFO_FAILED] 	= "REFUND_RECHARGE_GET_SUBSCRIBER_INFO_FAILED";
-		resultString[RC_REFUND_BATCH_RECHARGE_FAILED] 	= "REFUND_BATCH_RECHARGE_FAILED";
+		resultString[RC_REFUND_BATCH_RECHARGE_FAILED] 		= "REFUND_BATCH_RECHARGE_FAILED";
 		resultString[RC_ADD_BALANCE_ACCOUNT_IS_SUB_DEALER] 	= "ADD_BALANCE_ACCOUNT_IS_SUB_DEALER";
+		resultString[RC_RESET_PIN_SUCCESS] 					= "RESET_PIN_SUCCESS";
 	}
 	
 	public int id;
@@ -182,6 +186,10 @@ public class AgentRequest {
 					"; agentApprovedId:"+agent_approved_id+
 					"; msisdn:"+dealer_msisdn+
 					"; transactionId:"+refund_transaction_id;
+		case REQ_TYPE_RESET_PIN:
+			return "AgentReq: reqType:"+reqTypeString[req_type]+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn;
 		default:
 			return "AgentReq: reqType:unknown"+
 			"; agentId:"+agent_id+
@@ -254,6 +262,14 @@ public class AgentRequest {
 					"; agentId:"+agent_id+
 					"; msisdn:"+dealer_msisdn+
 					"; transactionId:"+refund_transaction_id+
+					"; status:"+status+
+					"; resultCode:"+result_code+
+					"; resultString:"+resultString[result_code];
+		case REQ_TYPE_RESET_PIN:
+			return "AgentReqResult: reqType:"+reqTypeString[req_type]+
+					"; agentUserName:"+agent_username+
+					"; agentId:"+agent_id+
+					"; msisdn:"+dealer_msisdn+
 					"; status:"+status+
 					"; resultCode:"+result_code+
 					"; resultString:"+resultString[result_code];

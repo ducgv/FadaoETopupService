@@ -35,7 +35,6 @@ import com.itpro.etopup.struct.dealercmd.MoveStockCmd;
 import com.itpro.etopup.struct.dealercmd.QueryBalanceCmd;
 import com.itpro.etopup.struct.dealercmd.RechargeCmd;
 import com.itpro.etopup.struct.dealercmd.RequestCmd;
-import com.itpro.etopup.struct.dealercmd.ResetPinCmd;
 import com.itpro.paymentgw.PaymentGWResultCode;
 import com.itpro.paymentgw.cmd.GetSubInfoCmd;
 import com.itpro.paymentgw.cmd.KeepAliveCmd;
@@ -376,6 +375,8 @@ public class ServiceProcess extends ProcessingThread {
 		    break;
 		case AgentRequest.REQ_TYPE_MOVE_DEALER_PROVINCE:
 			OnMoveDealerProvince(requestInfo);
+		case AgentRequest.REQ_TYPE_RESET_PIN:
+			OnResetPIN(requestInfo);
 		default:
 			break;
 		}
@@ -463,6 +464,7 @@ public class ServiceProcess extends ProcessingThread {
 				transactionRecord.dealer_msisdn = requestInfo.msisdn;
 				transactionRecord.dealer_id = oldDealerInfo.id;
 				transactionRecord.dealer_province = oldDealerInfo.province_register;
+				transactionRecord.dealer_category = oldDealerInfo.category;
 				transactionRecord.transaction_amount_req = -1*oldDealerInfo.balance;
 				transactionRecord.balance_changed_amount = -1*oldDealerInfo.balance;
 				transactionRecord.balance_before = oldDealerInfo.balance;
@@ -641,6 +643,8 @@ public class ServiceProcess extends ProcessingThread {
 					updateDealer(agentRequest);
 					transactionRecord.dealer_msisdn = requestInfo.msisdn;
 					transactionRecord.dealer_id = dealerInfo.id;
+					transactionRecord.dealer_province = dealerInfo.province_register;
+					transactionRecord.dealer_category = dealerInfo.category;
 					transactionRecord.balance_after = dealerInfo.balance;
 					transactionRecord.type = TransactionRecord.TRANS_TYPE_ADD_BALANCE;
 					transactionRecord.transaction_amount_req = agentRequest.balance_add_amount;
@@ -804,6 +808,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.dealer_id = dealerInfo.id;
 			transactionRecord.dealer_parent_id = dealerInfo.parent_id;
 			transactionRecord.dealer_province = agentInitInfo.province_code;
+			transactionRecord.dealer_category = dealerInfo.category;
 			transactionRecord.balance_before = 0;
 			transactionRecord.balance_after = dealerInfo.balance;
 			transactionRecord.type = dealerInfo.parent_id>0?TransactionRecord.TRANS_TYPE_CREATE_SUB_DEALER:TransactionRecord.TRANS_TYPE_CREATE_DEALER;
@@ -955,6 +960,8 @@ public class ServiceProcess extends ProcessingThread {
 
         transactionRecord.dealer_msisdn = old_transactionRecord.dealer_msisdn;
         transactionRecord.dealer_id = old_transactionRecord.dealer_id;
+        transactionRecord.dealer_province = dealerInfo.province_register;
+        transactionRecord.dealer_category = dealerInfo.category;
         transactionRecord.balance_before = dealerInfo.balance;
         transactionRecord.recharge_msidn= requestInfo.old_transactionRecord.recharge_msidn;
        // transactionRecord.balance_changed_amount = -1*old_transactionRecord.balance_changed_amount;
@@ -2272,7 +2279,7 @@ public class ServiceProcess extends ProcessingThread {
             try {
                 requestInfo.old_transactionRecord.refund_status=TransactionRecord.TRANS_REFUNDED_STATUS;
                 connection.updateTransactionRecord(requestInfo.old_transactionRecord);
-                connection.insertRefundCDRRecord(chargingCmdResp.recharge_msidn, chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 2, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
+                connection.insertRefundCDRRecord(requestInfo.dealerInfo.msisdn, requestInfo.dealerInfo.id, requestInfo.dealerInfo.province_register, requestInfo.dealerInfo.category, chargingCmdResp.recharge_msidn, getProvinceCode(chargingCmdResp.recharge_msidn),chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 2, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
             }catch (SQLException e) {
                 isConnected = false;
                 logError(MySQLConnection.getSQLExceptionString(e));
@@ -2295,7 +2302,7 @@ public class ServiceProcess extends ProcessingThread {
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: charging failed");
             
             try {
-                connection.insertRefundCDRRecord(chargingCmdResp.recharge_msidn, chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 3, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
+                connection.insertRefundCDRRecord(requestInfo.dealerInfo.msisdn, requestInfo.dealerInfo.id, requestInfo.dealerInfo.province_register, requestInfo.dealerInfo.category, chargingCmdResp.recharge_msidn, getProvinceCode(chargingCmdResp.recharge_msidn), chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 3, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
             }catch (SQLException e) {
                 isConnected = false;
                 logError(MySQLConnection.getSQLExceptionString(e));
@@ -2353,9 +2360,6 @@ public class ServiceProcess extends ProcessingThread {
 		case DealerRequest.CMD_TYPE_BATCH_RECHARGE:
 			OnBatchRecharge(dealerRequest);
 			break;
-		case DealerRequest.CMD_TYPE_RESET_PIN:
-			OnResetPIN(dealerRequest);
-			break;
 		case DealerRequest.CMD_TYPE_WRONG_SYNTAX:
 			OnReqWrongSyntax(dealerRequest);
 			break;
@@ -2364,38 +2368,87 @@ public class ServiceProcess extends ProcessingThread {
 
 	
 
-	private void OnResetPIN(DealerRequest dealerRequest) {
+	private void OnResetPIN(RequestInfo requestInfo) {
 		// TODO Auto-generated method stub
-		ResetPinCmd resetPinCmd = (ResetPinCmd) dealerRequest.requestCmd;
-		logInfo(resetPinCmd.getReqString());
-		if(!isDealer(dealerRequest, SmsTypes.SMS_TYPE_RESET_PIN))
-			return;
-		DealerInfo dealerInfo = resetPinCmd.dealerInfo;
-		resetPinCmd.dealerInfo = dealerInfo;
-		resetPinCmd.newPin = Config.serviceConfigs.getParam("DEFAULT_PIN");
+		DealerInfo dealerInfo = null;
+		AgentRequest agentRequest = requestInfo.agentRequest;
 		try {
-			connection.resetPIN(resetPinCmd);
-			resetPinCmd.resultCode = RequestCmd.R_OK;
-			resetPinCmd.resultString = "Change PIN success";
-			logInfo(resetPinCmd.getRespString());
-			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_CHANGE_PIN_SUCCESS")
-					.replaceAll("<NEW_PIN>", resetPinCmd.newPin);
-			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_CHANGE_PIN_SUCCESS");
-			sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CHANGE_PIN, 0);
-			dealerRequest.result = "CONTENT_CHANGE_PIN_SUCCESS";
-			dealerRequest.dealer_id = dealerInfo.id;
+			dealerInfo = connection.getDealerInfo(requestInfo.msisdn);
+			requestInfo.dealerInfo = dealerInfo;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
-			resetPinCmd.resultCode = RequestCmd.R_SYSTEM_ERROR;
-			resetPinCmd.resultString = MySQLConnection.getSQLExceptionString(e);
-			logError(resetPinCmd.getRespString());
-			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_DB_CONNECTION_ERROR");
-			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_DB_CONNECTION_ERROR");
-			sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CHANGE_PIN, 0);
-			dealerRequest.result = "CONTENT_DB_CONNECTION_ERROR";
+			//e.printStackTrace();
+			isConnected = false;
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
+			logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			return;
 		}
-		updateDealerRequest(dealerRequest);
-		listRequestProcessing.remove(dealerRequest.msisdn);
+		if(dealerInfo==null){
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_code = AgentRequest.RC_DEALER_NOT_FOUND;
+			logError(agentRequest.getRespString());
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			logInfo("AddBalance: msisdn:"+requestInfo.msisdn +"; error: Number not is Dealer");
+		}
+		else{
+			AgentInfo agentInitInfo = null;
+			try {
+				agentInitInfo = connection.getAgentInfo(agentRequest.agent_id);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				isConnected = false;
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
+				logError(agentRequest.getRespString()+"; error:"+MySQLConnection.getSQLExceptionString(e));
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			if(agentInitInfo == null){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_AGENT_INIT_NOT_FOUND;
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			else {
+				ChangePinCmd changePinCmd = new ChangePinCmd();
+				changePinCmd.msisdn = requestInfo.msisdn;
+				changePinCmd.dealerInfo = dealerInfo;
+				changePinCmd.newPin = Config.serviceConfigs.getParam("DEFAULT_PIN");
+				try {
+					connection.changePIN(changePinCmd);
+					changePinCmd.resultCode = RequestCmd.R_OK;
+					changePinCmd.resultString = "Reset PIN success";
+					logInfo(changePinCmd.getRespString());
+					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_RESET_PIN_SUCCESS")
+							.replaceAll("<NEW_PIN>", changePinCmd.newPin);
+					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_RESET_PIN_SUCCESS");
+					sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RESET_PIN, 0);
+					agentRequest.status = AgentRequest.STATUS_SUCCESS;
+					agentRequest.result_code = AgentRequest.RC_RESET_PIN_SUCCESS;
+					logInfo(agentRequest.getRespString());
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					changePinCmd.resultCode = RequestCmd.R_SYSTEM_ERROR;
+					changePinCmd.resultString = MySQLConnection.getSQLExceptionString(e);
+					logError(changePinCmd.getRespString());
+					String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_DB_CONNECTION_ERROR");
+					String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_DB_CONNECTION_ERROR");
+					sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_RESET_PIN, 0);
+					agentRequest.status = AgentRequest.STATUS_FAILED;
+					agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
+					logError(agentRequest.getRespString());
+				}
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+			}
+		}
 	}
 
 	private void OnBatchRecharge(DealerRequest dealerRequest) {
@@ -2507,6 +2560,8 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.type = TransactionRecord.TRANS_TYPE_BATCH_RECHARGE;
 			transactionRecord.dealer_msisdn = dealerInfo.msisdn;
 			transactionRecord.dealer_id = dealerInfo.id;
+			transactionRecord.dealer_province = dealerInfo.province_register;
+			transactionRecord.dealer_category = dealerInfo.category;
 			transactionRecord.balance_before = dealerInfo.balance;
 			transactionRecord.balance_changed_amount = 0;
 			transactionRecord.recharge_msidn = "";
@@ -2568,6 +2623,8 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecord.type = TransactionRecord.TRANS_TYPE_RECHARGE;
 		transactionRecord.dealer_msisdn = dealerInfo.msisdn;
 		transactionRecord.dealer_id = dealerInfo.id;
+		transactionRecord.dealer_province = dealerInfo.province_register;
+		transactionRecord.dealer_category = dealerInfo.category;
 		transactionRecord.balance_before = dealerInfo.balance;
 		transactionRecord.transaction_amount_req = -1*rechargeCmd.amount;
 		transactionRecord.balance_changed_amount = 0;
@@ -2700,6 +2757,8 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecord.type = TransactionRecord.TRANS_TYPE_MOVE_STOCK;
 		transactionRecord.dealer_msisdn = dealerInfo.msisdn;
 		transactionRecord.dealer_id = dealerInfo.id;
+		transactionRecord.dealer_province = dealerInfo.province_register;
+		transactionRecord.dealer_category = dealerInfo.category;
 		transactionRecord.transaction_amount_req = -1*moveStockCmd.amount;
 		transactionRecord.balance_before = dealerInfo.balance;
 		transactionRecord.balance_changed_amount = 0;

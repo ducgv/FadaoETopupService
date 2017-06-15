@@ -35,6 +35,7 @@ public class TransactionRecord {
 	public int dealer_id;
 	public int dealer_parent_id;
 	public int dealer_province;
+	public int dealer_category;
 	public int parent_id;
 	public String agent;
 	public int agent_id;
