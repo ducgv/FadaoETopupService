@@ -35,6 +35,7 @@ import com.itpro.etopup.struct.dealercmd.MoveStockCmd;
 import com.itpro.etopup.struct.dealercmd.QueryBalanceCmd;
 import com.itpro.etopup.struct.dealercmd.RechargeCmd;
 import com.itpro.etopup.struct.dealercmd.RequestCmd;
+import com.itpro.etopup.struct.dealercmd.ResetPinCmd;
 import com.itpro.paymentgw.PaymentGWResultCode;
 import com.itpro.paymentgw.cmd.GetSubInfoCmd;
 import com.itpro.paymentgw.cmd.KeepAliveCmd;
@@ -2352,6 +2353,9 @@ public class ServiceProcess extends ProcessingThread {
 		case DealerRequest.CMD_TYPE_BATCH_RECHARGE:
 			OnBatchRecharge(dealerRequest);
 			break;
+		case DealerRequest.CMD_TYPE_RESET_PIN:
+			OnResetPIN(dealerRequest);
+			break;
 		case DealerRequest.CMD_TYPE_WRONG_SYNTAX:
 			OnReqWrongSyntax(dealerRequest);
 			break;
@@ -2359,6 +2363,40 @@ public class ServiceProcess extends ProcessingThread {
 	}
 
 	
+
+	private void OnResetPIN(DealerRequest dealerRequest) {
+		// TODO Auto-generated method stub
+		ResetPinCmd resetPinCmd = (ResetPinCmd) dealerRequest.requestCmd;
+		logInfo(resetPinCmd.getReqString());
+		if(!isDealer(dealerRequest, SmsTypes.SMS_TYPE_RESET_PIN))
+			return;
+		DealerInfo dealerInfo = resetPinCmd.dealerInfo;
+		resetPinCmd.dealerInfo = dealerInfo;
+		resetPinCmd.newPin = Config.serviceConfigs.getParam("DEFAULT_PIN");
+		try {
+			connection.resetPIN(resetPinCmd);
+			resetPinCmd.resultCode = RequestCmd.R_OK;
+			resetPinCmd.resultString = "Change PIN success";
+			logInfo(resetPinCmd.getRespString());
+			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_CHANGE_PIN_SUCCESS")
+					.replaceAll("<NEW_PIN>", resetPinCmd.newPin);
+			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_CHANGE_PIN_SUCCESS");
+			sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CHANGE_PIN, 0);
+			dealerRequest.result = "CONTENT_CHANGE_PIN_SUCCESS";
+			dealerRequest.dealer_id = dealerInfo.id;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			resetPinCmd.resultCode = RequestCmd.R_SYSTEM_ERROR;
+			resetPinCmd.resultString = MySQLConnection.getSQLExceptionString(e);
+			logError(resetPinCmd.getRespString());
+			String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_DB_CONNECTION_ERROR");
+			String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_DB_CONNECTION_ERROR");
+			sendSms(dealerRequest.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CHANGE_PIN, 0);
+			dealerRequest.result = "CONTENT_DB_CONNECTION_ERROR";
+		}
+		updateDealerRequest(dealerRequest);
+		listRequestProcessing.remove(dealerRequest.msisdn);
+	}
 
 	private void OnBatchRecharge(DealerRequest dealerRequest) {
 		// TODO Auto-generated method stub
@@ -3133,9 +3171,11 @@ public class ServiceProcess extends ProcessingThread {
 	
 	public boolean isDealer(DealerRequest dealerRequest, int smsType) {
 		// TODO Auto-generated method stub
+		RequestInfo requestInfo = listRequestProcessing.get(dealerRequest.msisdn);
 		DealerInfo dealerInfo = null;
 		try {
 			dealerInfo = connection.getDealerInfo(dealerRequest.msisdn);
+			requestInfo.dealerInfo = dealerInfo;
 		} catch (SQLException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();

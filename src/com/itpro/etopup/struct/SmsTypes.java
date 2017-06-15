@@ -24,5 +24,6 @@ public class SmsTypes {
 	public static final int SMS_TYPE_REJECT = 14;
 	public static final int SMS_TYPE_WRONG_SYNTAX = 15;
 	public static final int SMS_TYPE_MOVE_DEALER_PROVINCE = 16;
+	public static final int SMS_TYPE_RESET_PIN = 17;
 	
 }

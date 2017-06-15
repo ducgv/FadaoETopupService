@@ -11,6 +11,7 @@ import com.itpro.etopup.struct.dealercmd.MoveStockCmd;
 import com.itpro.etopup.struct.dealercmd.QueryBalanceCmd;
 import com.itpro.etopup.struct.dealercmd.RechargeCmd;
 import com.itpro.etopup.struct.dealercmd.RequestCmd;
+import com.itpro.etopup.struct.dealercmd.ResetPinCmd;
 
 /**
  * @author Giap Van Duc
@@ -23,6 +24,7 @@ public class DealerRequest {
 	public static final int CMD_TYPE_MOVE_STOCK = 3;
 	public static final int CMD_TYPE_BATCH_RECHARGE = 4;
 	public static final int CMD_TYPE_WRONG_SYNTAX = 5;
+	public static final int CMD_TYPE_RESET_PIN = 6;
 	
 	public int id;
 	public String msisdn;
@@ -56,11 +58,20 @@ public class DealerRequest {
 		switch(cmd_params.length){
 		case 1:
 			//new
-			cmd_type = CMD_TYPE_QUERY_BALANCE;
-			QueryBalanceCmd queryBalanceCmd1 = new QueryBalanceCmd();
-			queryBalanceCmd1.msisdn = msisdn;
-			queryBalanceCmd1.pinCode = null;
-			requestCmd = queryBalanceCmd1;
+			if(req_src.equalsIgnoreCase("SMS")&&cmd_params[0].equalsIgnoreCase("R")){
+				cmd_type = CMD_TYPE_RESET_PIN;
+				ResetPinCmd resetPinCmd = new ResetPinCmd();
+				resetPinCmd.msisdn = msisdn;
+				resetPinCmd.pinCode = null;
+				requestCmd = resetPinCmd;
+			}
+			else{
+				cmd_type = CMD_TYPE_QUERY_BALANCE;
+				QueryBalanceCmd queryBalanceCmd1 = new QueryBalanceCmd();
+				queryBalanceCmd1.msisdn = msisdn;
+				queryBalanceCmd1.pinCode = null;
+				requestCmd = queryBalanceCmd1;
+			}
 			break;
 		case 2:
 			if(req_src.equalsIgnoreCase("WEB")){

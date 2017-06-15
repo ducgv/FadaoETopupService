@@ -10,7 +10,6 @@ import java.util.Hashtable;
 import java.util.Vector;
 import com.itpro.etopup.struct.AgentInfo;
 import com.itpro.etopup.struct.AgentRequest;
-import com.itpro.etopup.struct.CDRRecord;
 import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.MTRecord;
@@ -22,9 +21,9 @@ import com.itpro.etopup.struct.dealercmd.BatchRechargeElement;
 import com.itpro.etopup.struct.dealercmd.ChangePinCmd;
 import com.itpro.etopup.struct.dealercmd.MoveStockCmd;
 import com.itpro.etopup.struct.dealercmd.RechargeCmd;
+import com.itpro.etopup.struct.dealercmd.ResetPinCmd;
 import com.itpro.util.MySQLConnection;
 import com.mysql.jdbc.Statement;
-
 import java.io.UnsupportedEncodingException;
 import java.sql.CallableStatement;
 
@@ -986,32 +985,6 @@ public class DbConnection extends MySQLConnection {
         ps.execute();
         ps.close();
     }
-    
-	public void insertCDRRecord(CDRRecord cdrRecord) throws SQLException {
-		// TODO Auto-generated method stub
-		PreparedStatement ps = null;
-		String sql = "INSERT INTO cdr_topup(date_time,msisdn,province_code,sub_id,offer_id,offer_type,package_name,package_value,"
-				+ "service_fee,add_amount,result_code,result_string,status, transactionID, spID, token) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-		ps=connection.prepareStatement(sql);
-		ps.setTimestamp(1,cdrRecord.date_time);
-		ps.setString(2,cdrRecord.msisdn);
-		ps.setInt(3,cdrRecord.province_code);
-		ps.setString(4,cdrRecord.sub_id);
-		ps.setInt(5,cdrRecord.offer_id);
-		ps.setInt(6,cdrRecord.offer_type);
-		ps.setString(7,cdrRecord.package_name);
-		ps.setInt(8,cdrRecord.package_value);
-		ps.setInt(9,cdrRecord.service_fee);
-		ps.setInt(10,cdrRecord.add_amount);
-		ps.setInt(11,cdrRecord.result_code);
-		ps.setString(12,cdrRecord.result_string);
-		ps.setInt(13,cdrRecord.status);	
-		ps.setInt(14,cdrRecord.transactionID);
-		ps.setString(15,cdrRecord.spID);
-		ps.setString(16,cdrRecord.token);
-		ps.execute();
-		ps.close();
-	}
 
 	public void moveDealerProvince(MoveDealerProvinceCmd moveDealerProvinceCmd) throws SQLException {
 		// TODO Auto-generated method stub
@@ -1051,5 +1024,15 @@ public class DbConnection extends MySQLConnection {
 		ps.close();
 		
 		return provinces;
+	}
+
+	public void resetPIN(ResetPinCmd resetPinCmd) throws SQLException {
+		// TODO Auto-generated method stub
+		String sql = "UPDATE dealers SET pin_code = ? WHERE id=?";
+		PreparedStatement ps = connection.prepareStatement(sql);
+		ps.setString(1, resetPinCmd.newPin);
+		ps.setInt(2, resetPinCmd.dealerInfo.id);
+		ps.execute();
+		ps.close();
 	}
 }
