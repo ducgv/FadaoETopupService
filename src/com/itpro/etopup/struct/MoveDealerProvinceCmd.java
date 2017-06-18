@@ -10,6 +10,7 @@ package com.itpro.etopup.struct;
 public class MoveDealerProvinceCmd {
 	public int dealer_id;
 	public int new_provice_code;
+	public int new_customer_care;
 	public String approved;
 	public int approved_id;
 	public int return_code;

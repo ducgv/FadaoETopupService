@@ -30,7 +30,9 @@ public class DealerInfo {
 	public String name;
 	public Date birth_date;
 	public String id_card_number;
+	public String contact_phone;
 	public int province_register;
+	public int customer_care_register;
 	public String address;
 	public long balance;
 	public int active;

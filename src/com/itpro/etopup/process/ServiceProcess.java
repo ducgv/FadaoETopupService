@@ -413,10 +413,11 @@ public class ServiceProcess extends ProcessingThread {
 			break;
 		case AgentRequest.REQ_TYPE_REFUND:
 		case AgentRequest.REQ_TYPE_CANCEL_ADD_BALANCE:
-			onRefund(requestInfo);
+			OnRefund(requestInfo);
 		    break;
 		case AgentRequest.REQ_TYPE_MOVE_DEALER_PROVINCE:
 			OnMoveDealerProvince(requestInfo);
+			break;
 		case AgentRequest.REQ_TYPE_RESET_PIN:
 			OnResetPIN(requestInfo);
 		default:
@@ -453,7 +454,8 @@ public class ServiceProcess extends ProcessingThread {
 
 		MoveDealerProvinceCmd moveDealerProvinceCmd = new MoveDealerProvinceCmd();
 		moveDealerProvinceCmd.dealer_id = oldDealerInfo.id;
-		moveDealerProvinceCmd.new_provice_code = agentRequest.agentApproved.province_code;
+		moveDealerProvinceCmd.new_provice_code = agentRequest.dealer_province_code>0? agentRequest.dealer_province_code:agentRequest.agentApproved.province_code;
+		moveDealerProvinceCmd.new_customer_care = agentRequest.customer_care>0? agentRequest.customer_care:agentRequest.agentApproved.customer_care;
 		moveDealerProvinceCmd.approved = agentRequest.agentApproved.user_name;
 		moveDealerProvinceCmd.approved_id = agentRequest.agentApproved.id;
 		try {
@@ -463,6 +465,7 @@ public class ServiceProcess extends ProcessingThread {
 				transactionMoveDealerProvinceSource.dealer_msisdn = requestInfo.msisdn;
 				transactionMoveDealerProvinceSource.dealer_id = oldDealerInfo.id;
 				transactionMoveDealerProvinceSource.dealer_province = oldDealerInfo.province_register;
+				transactionMoveDealerProvinceSource.customer_care = agentRequest.agentInit.customer_care>0?agentRequest.agentInit.customer_care:oldDealerInfo.customer_care_register;
 				transactionMoveDealerProvinceSource.dealer_category = oldDealerInfo.category;
 				transactionMoveDealerProvinceSource.transaction_amount_req = -1*oldDealerInfo.balance;
 				transactionMoveDealerProvinceSource.balance_changed_amount = -1*oldDealerInfo.balance;
@@ -476,7 +479,7 @@ public class ServiceProcess extends ProcessingThread {
 				transactionMoveDealerProvinceSource.dealer_new_id = moveDealerProvinceCmd.new_dealer_id;
 				transactionMoveDealerProvinceSource.dealer_new_province = moveDealerProvinceCmd.new_provice_code;
 				transactionMoveDealerProvinceSource.result_description = "Move dealer province successfully";
-				transactionMoveDealerProvinceSource.date_time = new Timestamp(System.currentTimeMillis());
+				transactionMoveDealerProvinceSource.remark = agentRequest.remark;
 				transactionMoveDealerProvinceSource.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 				
 				agentRequest.status = AgentRequest.STATUS_SUCCESS;
@@ -498,6 +501,7 @@ public class ServiceProcess extends ProcessingThread {
 				transactionMoveDealerProvinceDest.dealer_msisdn = requestInfo.msisdn;
 				transactionMoveDealerProvinceDest.dealer_id = moveDealerProvinceCmd.new_dealer_id;
 				transactionMoveDealerProvinceDest.dealer_province = moveDealerProvinceCmd.new_provice_code;
+				transactionMoveDealerProvinceDest.customer_care = moveDealerProvinceCmd.new_customer_care;
 				transactionMoveDealerProvinceDest.transaction_amount_req = oldDealerInfo.balance;
 				transactionMoveDealerProvinceDest.balance_changed_amount = oldDealerInfo.balance;
 				transactionMoveDealerProvinceDest.balance_before = 0;
@@ -509,6 +513,7 @@ public class ServiceProcess extends ProcessingThread {
 				transactionMoveDealerProvinceDest.approved_id = agentRequest.agentApproved.id;
 				transactionMoveDealerProvinceDest.result_description = "Accepted dealer in new province successfully";
 				transactionMoveDealerProvinceDest.date_time = new Timestamp(System.currentTimeMillis());
+				transactionMoveDealerProvinceDest.remark = agentRequest.remark;
 				transactionMoveDealerProvinceDest.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 				transactionMoveDealerProvinceSource.refer_transaction_id = transactionMoveDealerProvinceDest.id;
 				transactionMoveDealerProvinceDest.refer_transaction_id = transactionMoveDealerProvinceSource.id;
@@ -583,7 +588,7 @@ public class ServiceProcess extends ProcessingThread {
 			}
 			else {
 					TransactionRecord transactionRecord = createTransactionRecord();
-					agentRequest.balance_add_amount = agentRequest.addBalanceInfo.cash_value+agentRequest.addBalanceInfo.commision_value;
+					agentRequest.balance_add_amount = agentRequest.addBalanceInfo.cash_value+agentRequest.addBalanceInfo.commision_value+agentRequest.addBalanceInfo.promotion_value;
 					agentRequest.dealer_id = dealerInfo.id;
 					transactionRecord.balance_before = dealerInfo.balance;
 					dealerInfo.balance += agentRequest.balance_add_amount;
@@ -591,6 +596,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.dealer_msisdn = requestInfo.msisdn;
 					transactionRecord.dealer_id = dealerInfo.id;
 					transactionRecord.dealer_province = dealerInfo.province_register;
+					transactionRecord.customer_care = agentRequest.agentInit.customer_care;
 					transactionRecord.dealer_category = dealerInfo.category;
 					transactionRecord.balance_after = dealerInfo.balance;
 					transactionRecord.type = TransactionRecord.TRANS_TYPE_STOCK_ALLOCATION;
@@ -603,6 +609,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
 					transactionRecord.result_description = "Stock Allocation successfully";
 					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+					transactionRecord.remark = agentRequest.remark;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 					insertTransactionRecord(transactionRecord);
 					agentRequest.status = AgentRequest.STATUS_SUCCESS;
@@ -699,6 +706,7 @@ public class ServiceProcess extends ProcessingThread {
 			dealerInfo.birth_date = agentRequest.dealer_birthdate;
 			dealerInfo.id_card_number = agentRequest.dealer_id_card_number;
 			dealerInfo.msisdn = agentRequest.dealer_msisdn;
+			dealerInfo.contact_phone = agentRequest.dealer_contact_phone;
 			dealerInfo.name = agentRequest.dealer_name;
 			dealerInfo.parent_id = agentRequest.dealer_parent_id;
 			String csDefaultPin = Config.serviceConfigs.getParam("DEFAULT_PIN_REGISTER");
@@ -706,7 +714,8 @@ public class ServiceProcess extends ProcessingThread {
 				dealerInfo.pin_code = genRandPinCode();
 			else
 				dealerInfo.pin_code = csDefaultPin;
-			dealerInfo.province_register = agentRequest.option_dealer_province_code>0?agentRequest.option_dealer_province_code:agentRequest.agentInit.province_code;
+			dealerInfo.province_register = agentRequest.dealer_province_code>0?agentRequest.dealer_province_code:agentRequest.agentInit.province_code;
+			dealerInfo.customer_care_register = agentRequest.customer_care>0?agentRequest.customer_care:agentRequest.agentInit.customer_care;
 			dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
 			dealerInfo.category=agentRequest.category;
 			insertDealer(dealerInfo);
@@ -716,6 +725,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.dealer_id = dealerInfo.id;
 			transactionRecord.dealer_parent_id = dealerInfo.parent_id;
 			transactionRecord.dealer_province = agentRequest.agentInit.province_code;
+			transactionRecord.customer_care = dealerInfo.customer_care_register;
 			transactionRecord.dealer_category = dealerInfo.category;
 			transactionRecord.balance_before = 0;
 			transactionRecord.balance_after = dealerInfo.balance;
@@ -729,6 +739,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
 			transactionRecord.result_description = dealerInfo.parent_id>0?"Add Retailer successfully":"Add Dealer successfully";
 			transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
+			transactionRecord.remark = agentRequest.remark;
 			transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
 			insertTransactionRecord(transactionRecord);
 			agentRequest.status = AgentRequest.STATUS_SUCCESS;
@@ -783,7 +794,8 @@ public class ServiceProcess extends ProcessingThread {
 			}
 		}
 	}
-	public void onRefund(RequestInfo requestInfo){
+	
+	private void OnRefund(RequestInfo requestInfo){
 	    
        TransactionRecord old_transactionRecord = null;
        AgentRequest agentRequest = requestInfo.agentRequest;
@@ -867,12 +879,10 @@ public class ServiceProcess extends ProcessingThread {
         transactionRecord.dealer_msisdn = old_transactionRecord.dealer_msisdn;
         transactionRecord.dealer_id = old_transactionRecord.dealer_id;
         transactionRecord.dealer_province = dealerInfo.province_register;
+        transactionRecord.customer_care = agentRequest.agentInit.customer_care>0?agentRequest.agentInit.customer_care:dealerInfo.customer_care_register;
         transactionRecord.dealer_category = dealerInfo.category;
         transactionRecord.balance_before = dealerInfo.balance;
         transactionRecord.recharge_msidn= requestInfo.old_transactionRecord.recharge_msidn;
-       // transactionRecord.balance_changed_amount = -1*old_transactionRecord.balance_changed_amount;
-       // transactionRecord.recharge_msidn = old_transactionRecord.recharge_msidn;
-        //transactionRecord.recharge_value = rechargeCmd.amount;
         transactionRecord.agent = agentRequest.agentInit.user_name;
         transactionRecord.agent_id = agentRequest.agent_id;
         transactionRecord.approved = agentRequest.agentApproved.user_name;
@@ -880,20 +890,21 @@ public class ServiceProcess extends ProcessingThread {
         transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
         transactionRecord.refer_transaction_id=old_transactionRecord.id;
         transactionRecord.transaction_amount_req=agentRequest.refund_amount;
+        transactionRecord.remark = agentRequest.remark;
         agentRequest.transaction_id=transactionRecord.id;
         
         if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE_VOUCHER){
             transactionRecord.type = TransactionRecord.TRANS_TYPE_CANCEL_RECHARGE_VOUCHER;
-            onRefundRecharge(requestInfo);
+            OnRefundRecharge(requestInfo);
         }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_BATCH_RECHARGE){
             transactionRecord.type = TransactionRecord.TRANS_TYPE_CANCEL_RECHARGE_VOUCHER;
-            onRefundBatchRecharge(requestInfo);
+            OnRefundBatchRecharge(requestInfo);
         }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_STOCK_MOVE_OUT){
             transactionRecord.type = TransactionRecord.TRANS_TYPE_CANCEL_STOCK_MOVE_OUT;
-            onRefundMoveStock(requestInfo);
+            OnRefundMoveStock(requestInfo);
         }else if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_STOCK_ALLOCATION){
             transactionRecord.type = TransactionRecord.TRANS_TYPE_CANCEL_STOCK_ALLOCATION;
-            onRefundAddBalance(requestInfo);
+            OnRefundAddBalance(requestInfo);
         }else{
            
             transactionRecord.recharge_sub_type = 0;
@@ -912,7 +923,7 @@ public class ServiceProcess extends ProcessingThread {
         }
         
 	}
-	private void onRefundRecharge(RequestInfo requestInfo){
+	private void OnRefundRecharge(RequestInfo requestInfo){
 	    TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
 	    logInfo("On refund batch recharge for agentRequest: id="+requestInfo.agentRequest.id+ ", TransactionRecord: id="+old_transactionRecord.id+", dealder_msisdn="+old_transactionRecord.dealer_msisdn);
         GetSubInfoCmd getSubInfoCmd = new GetSubInfoCmd();
@@ -926,7 +937,7 @@ public class ServiceProcess extends ProcessingThread {
         GlobalVars.paymentGWInterface.queueUserRequest.enqueue(getSubInfoCmd);
 	}
 
-    private void onRefundBatchRecharge(RequestInfo requestInfo) {
+    private void OnRefundBatchRecharge(RequestInfo requestInfo) {
        
         AgentRequest agentRequest=requestInfo.agentRequest;
         TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
@@ -954,10 +965,9 @@ public class ServiceProcess extends ProcessingThread {
             return;
         }
         if(batchRechargeElement ==null){
-            
             transactionRecord.recharge_sub_type = 0;
             transactionRecord.balance_after =   transactionRecord.balance_before;
-            transactionRecord.result_description = "Refund batch recharge msisdb not found";
+            transactionRecord.result_description = "Refund batch recharge msisdn not found";
             transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
             transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
             insertTransactionRecord(transactionRecord);
@@ -982,9 +992,9 @@ public class ServiceProcess extends ProcessingThread {
         old_transactionRecord.recharge_msidn=batchRechargeElement.recharge_msisdn;
         transactionRecord.recharge_msidn=batchRechargeElement.recharge_msisdn;
         transactionRecord.batch_recharge_id=old_transactionRecord.batch_recharge_id;
-        onRefundRecharge(requestInfo);
+        OnRefundRecharge(requestInfo);
     }
-    private void onRefundMoveStock(RequestInfo requestInfo){
+    private void OnRefundMoveStock(RequestInfo requestInfo){
         //TRANS_TYPE_MOVE_STOCK
         AgentRequest agentRequest=requestInfo.agentRequest;
         TransactionRecord old_transactionRecord=requestInfo.old_transactionRecord;
@@ -1049,13 +1059,13 @@ public class ServiceProcess extends ProcessingThread {
                     transactionRecord.balance_after = moveStockCmd.receiverBalanceAfter;// we reverse 
                     transactionRecord.partner_balance_after = moveStockCmd.balanceAfter;
                     transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
-                    transactionRecord.result_description = "Refun Move Stock successfully";
+                    transactionRecord.result_description = "Cancel Stock Move Out successfully";
                     transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
                     transactionRecord.balance_changed_amount=moveStockCmd.amount;
                     insertTransactionRecord(transactionRecord);
                     
                     moveStockCmd.resultCode = RequestCmd.R_OK;
-                    moveStockCmd.resultString = "Move Stock successfully";
+                    moveStockCmd.resultString = "Reverse Move Stock successfully";
                     logInfo(moveStockCmd.getRespString());
                     
                     agentRequest.status = AgentRequest.STATUS_SUCCESS;
@@ -1100,6 +1110,7 @@ public class ServiceProcess extends ProcessingThread {
 					cancelStockMoveInTransaction.dealer_id = receiverInfo.id;
 					cancelStockMoveInTransaction.dealer_province = receiverInfo.province_register;
 					cancelStockMoveInTransaction.dealer_category = receiverInfo.category;
+					cancelStockMoveInTransaction.customer_care = transactionRecord.customer_care;
 					cancelStockMoveInTransaction.transaction_amount_req = -1*moveStockCmd.amount;
 					cancelStockMoveInTransaction.balance_before = receiverInfo.balance;
 					cancelStockMoveInTransaction.balance_changed_amount = -1*moveStockCmd.amount;
@@ -1113,6 +1124,7 @@ public class ServiceProcess extends ProcessingThread {
 					cancelStockMoveInTransaction.agent_id = agentRequest.agent_id;
 					cancelStockMoveInTransaction.approved = agentRequest.agentApproved.user_name;
 					cancelStockMoveInTransaction.approved_id = agentRequest.agent_approved_id;
+					cancelStockMoveInTransaction.remark = transactionRecord.remark;
 					cancelStockMoveInTransaction.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 					cancelStockMoveInTransaction.result_description = "Cancel Stock Move In successfully";
 					insertTransactionRecord(cancelStockMoveInTransaction);
@@ -1192,7 +1204,7 @@ public class ServiceProcess extends ProcessingThread {
     	}
 	}
 
-	private void onRefundAddBalance(RequestInfo requestInfo){
+	private void OnRefundAddBalance(RequestInfo requestInfo){
     	DealerInfo dealerInfo = null;
 		AgentRequest agentRequest = requestInfo.agentRequest;
 		try {
@@ -2111,9 +2123,9 @@ public class ServiceProcess extends ProcessingThread {
             return;
         }
     }
-
-    @SuppressWarnings("unused")
-	private void onRefundBatchRechargeDone(RequestInfo requestInfo) {
+	
+	/*
+	private void OnRefundBatchRechargeDone(RequestInfo requestInfo) {
         AgentRequest agentRequest=requestInfo.agentRequest;
         TransactionRecord transactionRecord = requestInfo.transactionRecord;
         BatchRechargeCmd batchRechargeCmd=(BatchRechargeCmd)requestInfo.dealerRequest.requestCmd;
@@ -2162,6 +2174,8 @@ public class ServiceProcess extends ProcessingThread {
         updateAgentRequest(agentRequest);
         listRequestProcessing.remove(requestInfo.msisdn);
     }
+    */
+	
 	private void OnChargingCmdResp(ChargingCmd chargingCmdResp){
         logInfo("Charging resp:"+chargingCmdResp.toString());
         RequestInfo requestInfo = listRequestProcessing.get(chargingCmdResp.msisdn);
@@ -2693,7 +2707,6 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecordStockMoveOut.transaction_amount_req = -1*moveStockCmd.amount;
 		transactionRecordStockMoveOut.balance_before = dealerInfo.balance;
 		transactionRecordStockMoveOut.balance_changed_amount = 0;
-		transactionRecordStockMoveOut.date_time = new Timestamp(System.currentTimeMillis());
 		
 		String receiverMsisdn = "";
 		if(moveStockCmd.receiverMsisdn.startsWith("0202") && moveStockCmd.receiverMsisdn.length()==11){
@@ -3076,7 +3089,7 @@ public class ServiceProcess extends ProcessingThread {
 		listRequestProcessing.remove(dealerRequest.msisdn);
 	}
 	
-	public void OnReqWrongSyntax(DealerRequest dealerRequest) {
+	private void OnReqWrongSyntax(DealerRequest dealerRequest) {
 		// TODO Auto-generated method stub
 		String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_WRONG_SYNTAX");
 		String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_WRONG_SYNTAX");
@@ -3154,7 +3167,7 @@ public class ServiceProcess extends ProcessingThread {
 		GlobalVars.insertTransactionRecordProcess.queueInsertTransactionRecord.enqueue(transactionRecord);
 	}
 	
-	public TransactionRecord createTransactionRecord(){
+	private TransactionRecord createTransactionRecord(){
 		TransactionRecord transactionRecord = new TransactionRecord();
 		while(true){
 			try {
