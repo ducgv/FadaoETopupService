@@ -21,7 +21,6 @@ public class RechargeCdrRecord {
 	public int type;
 	public String dealer_msisdn;
 	public int dealer_id;
-	public int dealer_province;
 	public int dealer_category;
 	public int balance_changed_amount;
 	public long balance_before;
@@ -30,9 +29,6 @@ public class RechargeCdrRecord {
 	public int receiver_province;
 	public int receiver_sub_type;
 	public int recharge_value;
-	public int receiver_balance_before;
-	public int receiver_balance_after;
-	
 	public int transaction_id;
 	public int result;
 	public int result_code;

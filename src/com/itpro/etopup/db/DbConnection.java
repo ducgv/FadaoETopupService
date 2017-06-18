@@ -118,7 +118,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, province_register, account_balance, parent_id, category from dealers where msisdn = ? and active IN (1,2,3)");
+				"select id, msisdn, pin_code, province_register, customer_care_register, account_balance, parent_id, category, active from dealers where msisdn = ? and active IN (1,2,3)");
 		ps.setString(1, msisdn);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -128,9 +128,11 @@ public class DbConnection extends MySQLConnection {
 			dealerInfo.msisdn = rs.getString("msisdn");
 			dealerInfo.pin_code = rs.getString("pin_code");
 			dealerInfo.province_register = rs.getInt("province_register");
+			dealerInfo.customer_care_register = rs.getInt("customer_care_register");
 			dealerInfo.balance = rs.getInt("account_balance");
 			dealerInfo.parent_id = rs.getInt("parent_id");
 			dealerInfo.category = rs.getInt("category");
+			dealerInfo.active = rs.getInt("active");
 		}
 		rs.close();
 		ps.close();
@@ -141,7 +143,7 @@ public class DbConnection extends MySQLConnection {
 		// TODO Auto-generated method stub
 		DealerInfo dealerInfo = null;
 		PreparedStatement ps=connection.prepareStatement(
-				"select id, msisdn, pin_code, province_register, account_balance, parent_id, category from dealers where id = ? ");
+				"select id, msisdn, pin_code, province_register, customer_care_register, account_balance, parent_id, category, active from dealers where id = ? ");
 		ps.setInt(1, dealerId);
 		ps.execute();
 		ResultSet rs = ps.getResultSet();
@@ -151,9 +153,11 @@ public class DbConnection extends MySQLConnection {
 			dealerInfo.msisdn = rs.getString("msisdn");
 			dealerInfo.pin_code = rs.getString("pin_code");
 			dealerInfo.province_register = rs.getInt("province_register");
+			dealerInfo.customer_care_register = rs.getInt("customer_care_register");
 			dealerInfo.balance = rs.getInt("account_balance");
 			dealerInfo.parent_id = rs.getInt("parent_id");
 			dealerInfo.category = rs.getInt("category");
+			dealerInfo.active = rs.getInt("active");
 		}
 		rs.close();
 		ps.close();
@@ -826,17 +830,16 @@ public class DbConnection extends MySQLConnection {
 	public void deleteDealer(DealerInfo dealerInfo) throws SQLException {
 		// TODO Auto-generated method stub
 		PreparedStatement ps = null;		
-		ps=connection.prepareStatement("UPDATE dealers SET account_balance = ?, active = ? WHERE id = ?");
-		ps.setLong(1, dealerInfo.balance);
-		ps.setInt(2,DealerInfo.STATUS_DELETED);
-		ps.setInt(3,dealerInfo.id);
+		ps=connection.prepareStatement("UPDATE dealers SET active = ? WHERE id = ?");
+		ps.setInt(1,DealerInfo.STATUS_DELETED);
+		ps.setInt(2,dealerInfo.id);
 		ps.executeUpdate();
 		ps.close();
 	}
 	
 	public void updateAgentRequest(AgentRequest agentRequest) throws SQLException {
 		// TODO Auto-generated method stub
-		String sql = "UPDATE agent_requests SET status=?, result_code = ?, result_description=?";;
+		String sql = "UPDATE agent_requests SET status=?, approve_username =?, result_code = ?, result_description=?";;
 		if(agentRequest.dealer_id!=0)
 			sql+=", dealer_id=?";
 		if(agentRequest.transaction_id!=0)
@@ -846,9 +849,10 @@ public class DbConnection extends MySQLConnection {
 		PreparedStatement ps = null;
 		ps=connection.prepareStatement(sql);
 		ps.setInt(1, agentRequest.status);
-		ps.setInt(2, agentRequest.result_code);
-		ps.setString(3, AgentRequest.resultString[agentRequest.result_code]);
-		int index = 3;
+		ps.setString(2, agentRequest.agentApproved!=null?agentRequest.agentApproved.user_name:null);
+		ps.setInt(3, agentRequest.result_code);
+		ps.setString(4, AgentRequest.resultString[agentRequest.result_code]);
+		int index = 4;
 		if(agentRequest.dealer_id!=0)
 			ps.setInt(++index, agentRequest.dealer_id);
 	
@@ -984,55 +988,53 @@ public class DbConnection extends MySQLConnection {
     }
 
 
-    public void insertRefundCDRRecord(String dealer_msisdn, int dealer_id, int dealer_province, int dealer_category, String msisdn, int receiver_province, long charge_value,int result_code,String result_string,int status,int transactionID, String spID,String serviceID, int transactionRecordId) throws SQLException {
+    public void insertRefundCdrRecord(String dealer_msisdn, int dealer_id, int dealer_province, int customer_care, int dealer_category, String msisdn, int receiver_province, long charge_value,int result_code,String result_string,int status,int transactionID, String spID,String serviceID, int transactionRecordId) throws SQLException {
         // TODO Auto-generated method stub
         PreparedStatement ps = null;
-        String sql = "INSERT `refund_cdr`(`date_time`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`dealer_category`,`msisdn`,`receiver_province`,`charge_value`,`result_code`,`result_string`,`status`,`transactionID`,`spID`,`serviceID`,`transactionRecordId`)"
-                + " VALUES (now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT `refund_cdr`(`date_time`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`customer_care`,`dealer_category`,`msisdn`,`receiver_province`,`charge_value`,`result_code`,`result_string`,`status`,`transactionID`,`spID`,`serviceID`,`transactionRecordId`)"
+                + " VALUES (now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         ps = connection.prepareStatement(sql);
         ps.setString(1, dealer_msisdn);
         ps.setInt(2, dealer_id);
         ps.setInt(3, dealer_province);
-        ps.setInt(4, dealer_category);
-        ps.setString(5, msisdn);
-        ps.setInt(6, receiver_province);
-        ps.setLong(7, charge_value);
-        ps.setInt(8, result_code);
-        ps.setString(9, result_string);
-        ps.setInt(10, status);
-        ps.setInt(11, transactionID);
-        ps.setString(12, spID);
-        ps.setString(13, serviceID);
-        ps.setInt(14, transactionRecordId);
+        ps.setInt(4, customer_care);
+        ps.setInt(5, dealer_category);
+        ps.setString(6, msisdn);
+        ps.setInt(7, receiver_province);
+        ps.setLong(8, charge_value);
+        ps.setInt(9, result_code);
+        ps.setString(10, result_string);
+        ps.setInt(11, status);
+        ps.setInt(12, transactionID);
+        ps.setString(13, spID);
+        ps.setString(14, serviceID);
+        ps.setInt(15, transactionRecordId);
         ps.execute();
         ps.close();
     }
-    public void insertRecharge_cdr(RechargeCdrRecord rechargeCdrRecord) throws SQLException {
+    public void insertRechargeCdr(RechargeCdrRecord rechargeCdrRecord) throws SQLException {
         // TODO Auto-generated method stub
         PreparedStatement ps = null;
-        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`dealer_category`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_province`,`receiver_sub_type`,`recharge_value`,`receiver_balance_before`,`receiver_balance_after`,`transaction_id`,`result`,`result_code`,`result_description`) "
-                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`dealer_category`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_province`,`receiver_sub_type`,`recharge_value`,`transaction_id`,`result`,`result_code`,`result_description`) "
+                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         ps=connection.prepareStatement(sql);
         ps.setInt(1,rechargeCdrRecord.payment_transaction_id);
         ps.setTimestamp(2,rechargeCdrRecord.date_time);
         ps.setInt(3,rechargeCdrRecord.type);
         ps.setString(4,rechargeCdrRecord.dealer_msisdn);
         ps.setInt(5,rechargeCdrRecord.dealer_id);
-        ps.setInt(6, rechargeCdrRecord.dealer_province);
-        ps.setInt(7, rechargeCdrRecord.dealer_category);
-        ps.setInt(8,rechargeCdrRecord.balance_changed_amount);
-        ps.setLong(9,rechargeCdrRecord.balance_before);
-        ps.setLong(10,rechargeCdrRecord.balance_after);
-        ps.setString(11,rechargeCdrRecord.receiver_msidn);
-        ps.setInt(12, rechargeCdrRecord.receiver_province);
-        ps.setInt(13,rechargeCdrRecord.receiver_sub_type);
-        ps.setInt(14,rechargeCdrRecord.recharge_value);
-        ps.setInt(15,rechargeCdrRecord.receiver_balance_before);
-        ps.setInt(16,rechargeCdrRecord.receiver_balance_after);
-        ps.setInt(17,rechargeCdrRecord.transaction_id);
-        ps.setInt(18,rechargeCdrRecord.result);
-        ps.setInt(19,rechargeCdrRecord.result_code);
-        ps.setString(20,rechargeCdrRecord.result_description);
+        ps.setInt(6, rechargeCdrRecord.dealer_category);
+        ps.setInt(7,rechargeCdrRecord.balance_changed_amount);
+        ps.setLong(8,rechargeCdrRecord.balance_before);
+        ps.setLong(9,rechargeCdrRecord.balance_after);
+        ps.setString(10,rechargeCdrRecord.receiver_msidn);
+        ps.setInt(11, rechargeCdrRecord.receiver_province);
+        ps.setInt(12,rechargeCdrRecord.receiver_sub_type);
+        ps.setInt(13,rechargeCdrRecord.recharge_value);
+        ps.setInt(14,rechargeCdrRecord.transaction_id);
+        ps.setInt(15,rechargeCdrRecord.result);
+        ps.setInt(16,rechargeCdrRecord.result_code);
+        ps.setString(17,rechargeCdrRecord.result_description);
         ps.execute();
         ps.close();
     }
@@ -1076,5 +1078,21 @@ public class DbConnection extends MySQLConnection {
 		ps.close();
 		
 		return provinces;
+	}
+
+	public boolean isDealerHasRetailer(int dealer_id) throws SQLException {
+		// TODO Auto-generated method stub
+		boolean result = false;
+		PreparedStatement ps=connection.prepareStatement(
+				"select 1 from dealers where active IN(1,2,3) AND parent_id = ? limit 1");
+		ps.setInt(1, dealer_id);
+		ps.execute();
+		ResultSet rs = ps.getResultSet();
+		if(rs.next()) {
+			result = true;
+		}
+		rs.close();
+		ps.close();
+		return result;
 	}
 }

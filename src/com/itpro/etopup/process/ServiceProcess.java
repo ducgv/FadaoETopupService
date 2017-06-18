@@ -420,8 +420,116 @@ public class ServiceProcess extends ProcessingThread {
 			break;
 		case AgentRequest.REQ_TYPE_RESET_PIN:
 			OnResetPIN(requestInfo);
+			break;
+		case AgentRequest.REQ_TYPE_DELETE_DEALER:
+			OnDeleteDealer(requestInfo);
+			break;
 		default:
 			break;
+		}
+	}
+
+	private void OnDeleteDealer(RequestInfo requestInfo) {
+		// TODO Auto-generated method stub
+		DealerInfo dealerInfo = null;
+		AgentRequest agentRequest = requestInfo.agentRequest;
+		try {
+			dealerInfo = connection.getDealerInfo(requestInfo.msisdn);
+			requestInfo.dealerInfo = dealerInfo;
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			//e.printStackTrace();
+			isConnected = false;
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
+			logError(agentRequest.getRespString());
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			return;
+		}
+		if(dealerInfo==null){
+			agentRequest.status = AgentRequest.STATUS_FAILED;
+			agentRequest.result_code = AgentRequest.RC_DEALER_NOT_FOUND;
+			logError(agentRequest.getRespString());
+			updateAgentRequest(agentRequest);
+			listRequestProcessing.remove(requestInfo.msisdn);
+			logInfo("AddBalance: msisdn:"+requestInfo.msisdn +"; error: Number not is Dealer");
+		}
+		else{
+			boolean isDealerHasRetailer = false;
+			try {
+				isDealerHasRetailer = connection.isDealerHasRetailer(dealerInfo.id);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				isConnected = false;
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
+			if(isDealerHasRetailer){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_DEALER_HAS_RETAILER;
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				logInfo("DeleteDealer: msisdn:"+requestInfo.msisdn +"; error: Dealer has Retailer");
+				return;
+			}
+			
+			if(dealerInfo.balance>=5000){
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_MUST_CLEAR_STOCK_BEFORE;
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				logInfo("DeleteDealer: msisdn:"+requestInfo.msisdn +"; error: Must clear Stock before");
+				return;
+			}
+
+			try {
+				connection.deleteDealer(dealerInfo);
+				TransactionRecord transactionRecord = createTransactionRecord();
+				transactionRecord.dealer_msisdn = requestInfo.msisdn;
+				transactionRecord.dealer_id = dealerInfo.id;
+				transactionRecord.dealer_province = dealerInfo.province_register;
+				transactionRecord.customer_care = agentRequest.agentInit.customer_care > 0? agentRequest.agentInit.customer_care:dealerInfo.customer_care_register;
+				transactionRecord.dealer_category = dealerInfo.category;
+				transactionRecord.balance_before = dealerInfo.balance;
+				transactionRecord.balance_after = dealerInfo.balance;
+				transactionRecord.type = TransactionRecord.TRANS_TYPE_CANCEL_DEALER;
+				transactionRecord.balance_changed_amount = 0;
+				transactionRecord.transaction_amount_req = 0;
+				transactionRecord.agent = agentRequest.agentInit.user_name;
+				transactionRecord.agent_id = agentRequest.agentInit.id;
+				transactionRecord.approved = agentRequest.agentApproved.user_name;
+				transactionRecord.approved_id = agentRequest.agentApproved.id;
+				transactionRecord.result_description = "Delete Dealer successfully";
+				transactionRecord.remark = agentRequest.remark;
+				transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+				insertTransactionRecord(transactionRecord);
+				agentRequest.status = AgentRequest.STATUS_SUCCESS;
+				agentRequest.dealer_id = dealerInfo.id;
+				agentRequest.result_code = AgentRequest.RC_DELETE_DEALER_SUCCESS;
+				agentRequest.transaction_id = transactionRecord.id;
+				updateAgentRequest(agentRequest);
+				logInfo(agentRequest.getRespString());
+				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_DELETE_DEALER_SUCCESS");
+				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_DELETE_DEALER_SUCCESS");
+				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_DELETE_DEALER, transactionRecord.id);
+				listRequestProcessing.remove(requestInfo.msisdn);
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				isConnected = false;
+				agentRequest.status = AgentRequest.STATUS_FAILED;
+				agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
+				logError(agentRequest.getRespString());
+				updateAgentRequest(agentRequest);
+				listRequestProcessing.remove(requestInfo.msisdn);
+				return;
+			}
 		}
 	}
 
@@ -570,7 +678,7 @@ public class ServiceProcess extends ProcessingThread {
 			logInfo("AddBalance: msisdn:"+requestInfo.msisdn +"; error: Number not is Dealer");
 		}
 		else{
-			if(agentRequest.agentInit.province_code!=dealerInfo.province_register){
+			if(agentRequest.agentInit.province_code!=0&&agentRequest.agentInit.province_code!=dealerInfo.province_register){
 				agentRequest.status = AgentRequest.STATUS_FAILED;
 				agentRequest.result_code = AgentRequest.RC_DEALER_IS_OUTSIDE_PROVINCE;
 				logError(agentRequest.getRespString());
@@ -596,7 +704,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.dealer_msisdn = requestInfo.msisdn;
 					transactionRecord.dealer_id = dealerInfo.id;
 					transactionRecord.dealer_province = dealerInfo.province_register;
-					transactionRecord.customer_care = agentRequest.agentInit.customer_care;
+					transactionRecord.customer_care = agentRequest.agentInit.customer_care>0?agentRequest.agentInit.customer_care:dealerInfo.customer_care_register;
 					transactionRecord.dealer_category = dealerInfo.category;
 					transactionRecord.balance_after = dealerInfo.balance;
 					transactionRecord.type = TransactionRecord.TRANS_TYPE_STOCK_ALLOCATION;
@@ -608,7 +716,6 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.approved_id = agentRequest.agentApproved.id;
 					transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
 					transactionRecord.result_description = "Stock Allocation successfully";
-					transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 					transactionRecord.remark = agentRequest.remark;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 					insertTransactionRecord(transactionRecord);
@@ -724,7 +831,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.dealer_msisdn = requestInfo.msisdn;
 			transactionRecord.dealer_id = dealerInfo.id;
 			transactionRecord.dealer_parent_id = dealerInfo.parent_id;
-			transactionRecord.dealer_province = agentRequest.agentInit.province_code;
+			transactionRecord.dealer_province = dealerInfo.province_register;
 			transactionRecord.customer_care = dealerInfo.customer_care_register;
 			transactionRecord.dealer_category = dealerInfo.category;
 			transactionRecord.balance_before = 0;
@@ -740,7 +847,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.result_description = dealerInfo.parent_id>0?"Add Retailer successfully":"Add Dealer successfully";
 			transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 			transactionRecord.remark = agentRequest.remark;
-			transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
+			transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 			insertTransactionRecord(transactionRecord);
 			agentRequest.status = AgentRequest.STATUS_SUCCESS;
 			agentRequest.dealer_id = dealerInfo.id;
@@ -751,24 +858,24 @@ public class ServiceProcess extends ProcessingThread {
 			if(dealerInfo.parent_id>0){
 				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_SUB_DEALER_SUCCESS")
 						.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"))
-						.replaceAll("<PHONE_NUMBER>", dealerInfo.msisdn.replaceFirst("856", "0"))
+						.replaceAll("<PHONE_NUMBER>", dealerInfo.msisdn.replaceFirst("856", ""))
 						.replaceAll("<PIN>", dealerInfo.pin_code);
 				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_SUB_DEALER_SUCCESS")
 						.replaceAll("<DEALER_NUMBER>", ""+parentInfo.msisdn.replaceFirst("856", "0"))
-						.replaceAll("<PHONE_NUMBER>", dealerInfo.msisdn.replaceFirst("856", "0"))
+						.replaceAll("<PHONE_NUMBER>", dealerInfo.msisdn.replaceFirst("856", ""))
 						.replaceAll("<PIN>", dealerInfo.pin_code);
 
-				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_DEALER, transactionRecord.id);
+				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_ADD_DEALER, transactionRecord.id);
 			}
 			else{
 				String content = Config.smsMessageContents[Config.smsLanguage].getParam("CONTENT_REGISTER_DEALER_SUCCESS")
-						.replaceAll("<PHONE_NUMBER>", dealerInfo.msisdn.replaceFirst("856", "0"))
+						.replaceAll("<PHONE_NUMBER>", dealerInfo.msisdn.replaceFirst("856", ""))
 						.replaceAll("<PIN>", dealerInfo.pin_code);
 				String ussdContent = Config.ussdMessageContents[Config.smsLanguage].getParam("NOTIFY_REGISTER_DEALER_SUCCESS")
-						.replaceAll("<PHONE_NUMBER>", dealerInfo.msisdn.replaceFirst("856", "0"))
+						.replaceAll("<PHONE_NUMBER>", dealerInfo.msisdn.replaceFirst("856", ""))
 						.replaceAll("<PIN>", dealerInfo.pin_code);
 
-				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_CREATE_DEALER, transactionRecord.id);
+				sendSms(requestInfo.msisdn, content, ussdContent, SmsTypes.SMS_TYPE_ADD_DEALER, transactionRecord.id);
 
 			}
 			listRequestProcessing.remove(requestInfo.msisdn);
@@ -1009,7 +1116,7 @@ public class ServiceProcess extends ProcessingThread {
             isConnected = false;  
             transactionRecord.recharge_sub_type = 0;
             transactionRecord.balance_after =   transactionRecord.balance_before;
-            transactionRecord.result_description = "Connect Db error.";
+            transactionRecord.result_description = "Connect Db error";
             transactionRecord.status = TransactionRecord.TRANS_STATUS_FAILED;
             transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
             insertTransactionRecord(transactionRecord);
@@ -1018,7 +1125,7 @@ public class ServiceProcess extends ProcessingThread {
             agentRequest.result_code = AgentRequest.RC_DB_CONNECTION_ERROR;
             updateAgentRequest(agentRequest);
             listRequestProcessing.remove(requestInfo.msisdn);
-            logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo Failed");
+            logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: Get SubInfo failed");
             return;
         }
         if( receiverInfo==null){
@@ -1680,7 +1787,6 @@ public class ServiceProcess extends ProcessingThread {
         rechargeCdrRecord.type=type;
         rechargeCdrRecord.dealer_msisdn=transactionRecord.dealer_msisdn;
         rechargeCdrRecord.dealer_id=transactionRecord.dealer_id;
-        rechargeCdrRecord.dealer_province = requestInfo.dealerInfo.province_register;
         rechargeCdrRecord.dealer_category = requestInfo.dealerInfo.category;
         rechargeCdrRecord.balance_changed_amount=-1*topupPrepaidCmdResp.amount;
         rechargeCdrRecord.balance_before=transactionRecord.balance_before;
@@ -1704,7 +1810,6 @@ public class ServiceProcess extends ProcessingThread {
         rechargeCdrRecord.type=type;
         rechargeCdrRecord.dealer_msisdn=transactionRecord.dealer_msisdn;
         rechargeCdrRecord.dealer_id=transactionRecord.dealer_id;
-        rechargeCdrRecord.dealer_province = requestInfo.dealerInfo.province_register;
         rechargeCdrRecord.dealer_category = requestInfo.dealerInfo.category;
         rechargeCdrRecord.balance_changed_amount=-1*paymentPostpaidCmd.amount;
         rechargeCdrRecord.balance_before=transactionRecord.balance_before;
@@ -2242,7 +2347,7 @@ public class ServiceProcess extends ProcessingThread {
             try {
                 requestInfo.old_transactionRecord.refund_status=TransactionRecord.TRANS_REFUNDED_STATUS;
                 connection.updateTransactionRecord(requestInfo.old_transactionRecord);
-                connection.insertRefundCDRRecord(requestInfo.dealerInfo.msisdn, requestInfo.dealerInfo.id, requestInfo.dealerInfo.province_register, requestInfo.dealerInfo.category, chargingCmdResp.recharge_msidn, getProvinceCode(chargingCmdResp.recharge_msidn),chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 2, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
+                connection.insertRefundCdrRecord(requestInfo.dealerInfo.msisdn, requestInfo.dealerInfo.id, requestInfo.dealerInfo.province_register, agentRequest.agentInit.customer_care, requestInfo.dealerInfo.category, chargingCmdResp.recharge_msidn, getProvinceCode(chargingCmdResp.recharge_msidn),chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 2, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
             }catch (SQLException e) {
                 isConnected = false;
                 logError(MySQLConnection.getSQLExceptionString(e));
@@ -2265,7 +2370,7 @@ public class ServiceProcess extends ProcessingThread {
             logInfo("Refund transaction : id:"+requestInfo.agentRequest.transaction_id +"; error: charging failed");
             
             try {
-                connection.insertRefundCDRRecord(requestInfo.dealerInfo.msisdn, requestInfo.dealerInfo.id, requestInfo.dealerInfo.province_register, requestInfo.dealerInfo.category, chargingCmdResp.recharge_msidn, getProvinceCode(chargingCmdResp.recharge_msidn), chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 3, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
+                connection.insertRefundCdrRecord(requestInfo.dealerInfo.msisdn, requestInfo.dealerInfo.id, requestInfo.dealerInfo.province_register, agentRequest.agentInit.customer_care, requestInfo.dealerInfo.category, chargingCmdResp.recharge_msidn, getProvinceCode(chargingCmdResp.recharge_msidn), chargingCmdResp.chargeValue, chargingCmdResp.resultCode, chargingCmdResp.resultString, 3, chargingCmdResp.transactionID, Config.charging_spID, Config.charging_serviceID, transactionRecord.id);
             }catch (SQLException e) {
                 isConnected = false;
                 logError(MySQLConnection.getSQLExceptionString(e));

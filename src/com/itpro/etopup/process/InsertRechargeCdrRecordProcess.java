@@ -103,7 +103,7 @@ public class InsertRechargeCdrRecordProcess extends ProcessingThread {
 		RechargeCdrRecord rechargeCdrRecord = (RechargeCdrRecord) queueInsertRechargeCdrRecordProcess.dequeue();
 		if(rechargeCdrRecord!=null){
 			try {
-				connection.insertRecharge_cdr(rechargeCdrRecord);
+				connection.insertRechargeCdr(rechargeCdrRecord);
 			} catch (SQLException e) {
 				// TODO Auto-generated catch block
 				logError("update " + rechargeCdrRecord.toString()+ "; error:" + MySQLConnection.getSQLExceptionString(e));

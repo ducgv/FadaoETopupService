@@ -24,12 +24,14 @@ public class TransactionRecord {
 	public final static int TRANS_TYPE_STOCK_MOVE_IN = 11;
 	public final static int TRANS_TYPE_CANCEL_STOCK_MOVE_IN = 12;
 	public final static int TRANS_TYPE_STOCK_ALLOCATION_FREE = 13;
+	public static final int TRANS_TYPE_CANCEL_DEALER = 14;
 	
 	public final static int TRANS_STATUS_SUCCESS = 2;
 	public final static int TRANS_STATUS_FAILED = 3;
 
     public final static int TRANS_NOT_REFUNDED_STATUS = 0;	
 	public final static int TRANS_REFUNDED_STATUS = 1;
+	
 
 	public int id;
 	public int type;

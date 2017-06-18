@@ -8,7 +8,7 @@ package com.itpro.etopup.struct;
  *
  */
 public class SmsTypes {
-	public static final int SMS_TYPE_CREATE_DEALER = 1;
+	public static final int SMS_TYPE_ADD_DEALER = 1;
 	public static final int SMS_TYPE_ADD_BALANCE = 2;
 	public static final int SMS_TYPE_QUERY_BALANCE = 3;
 	public static final int SMS_TYPE_CHANGE_PIN = 4;
@@ -25,5 +25,6 @@ public class SmsTypes {
 	public static final int SMS_TYPE_WRONG_SYNTAX = 15;
 	public static final int SMS_TYPE_MOVE_DEALER_PROVINCE = 16;
 	public static final int SMS_TYPE_RESET_PIN = 17;
+	public static final int SMS_TYPE_DELETE_DEALER = 18;
 	
 }
