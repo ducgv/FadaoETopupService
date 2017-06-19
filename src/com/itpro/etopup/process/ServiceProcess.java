@@ -499,7 +499,7 @@ public class ServiceProcess extends ProcessingThread {
 				transactionRecord.dealer_category = dealerInfo.category;
 				transactionRecord.balance_before = dealerInfo.balance;
 				transactionRecord.balance_after = dealerInfo.balance;
-				transactionRecord.type = TransactionRecord.TRANS_TYPE_CANCEL_DEALER;
+				transactionRecord.type = TransactionRecord.TRANS_TYPE_DELETE_DEALER;
 				transactionRecord.balance_changed_amount = 0;
 				transactionRecord.transaction_amount_req = 0;
 				transactionRecord.agent = agentRequest.agentInit.user_name;
@@ -620,7 +620,6 @@ public class ServiceProcess extends ProcessingThread {
 				transactionMoveDealerProvinceDest.approved = agentRequest.agentApproved.user_name;
 				transactionMoveDealerProvinceDest.approved_id = agentRequest.agentApproved.id;
 				transactionMoveDealerProvinceDest.result_description = "Accepted dealer in new province successfully";
-				transactionMoveDealerProvinceDest.date_time = new Timestamp(System.currentTimeMillis());
 				transactionMoveDealerProvinceDest.remark = agentRequest.remark;
 				transactionMoveDealerProvinceDest.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 				transactionMoveDealerProvinceSource.refer_transaction_id = transactionMoveDealerProvinceDest.id;
@@ -821,8 +820,14 @@ public class ServiceProcess extends ProcessingThread {
 				dealerInfo.pin_code = genRandPinCode();
 			else
 				dealerInfo.pin_code = csDefaultPin;
-			dealerInfo.province_register = agentRequest.dealer_province_code>0?agentRequest.dealer_province_code:agentRequest.agentInit.province_code;
-			dealerInfo.customer_care_register = agentRequest.customer_care>0?agentRequest.customer_care:agentRequest.agentInit.customer_care;
+			if(agentRequest.dealer_parent_id>0){
+				dealerInfo.province_register = parentInfo.province_register;
+				dealerInfo.customer_care_register = parentInfo.customer_care_register;
+			}
+			else{
+				dealerInfo.province_register = agentRequest.dealer_province_code>0?agentRequest.dealer_province_code:agentRequest.agentInit.province_code;
+				dealerInfo.customer_care_register = agentRequest.customer_care>0?agentRequest.customer_care:agentRequest.agentInit.customer_care;
+			}
 			dealerInfo.register_date = new Timestamp(System.currentTimeMillis());
 			dealerInfo.category=agentRequest.category;
 			insertDealer(dealerInfo);
@@ -845,7 +850,6 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.approved_id = agentRequest.agentApproved.id;
 			transactionRecord.addBalanceInfo = agentRequest.addBalanceInfo;
 			transactionRecord.result_description = dealerInfo.parent_id>0?"Add Retailer successfully":"Add Dealer successfully";
-			transactionRecord.date_time = new Timestamp(System.currentTimeMillis());
 			transactionRecord.remark = agentRequest.remark;
 			transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 			insertTransactionRecord(transactionRecord);

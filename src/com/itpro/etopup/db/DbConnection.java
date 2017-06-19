@@ -369,6 +369,7 @@ public class DbConnection extends MySQLConnection {
 			
 		//Transactions for Agent Request	
 		case TransactionRecord.TRANS_TYPE_ADD_DEALER:
+		case TransactionRecord.TRANS_TYPE_DELETE_DEALER:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
 					+ "agent, agent_id, approved, approved_id, remark, status, result_description) "
