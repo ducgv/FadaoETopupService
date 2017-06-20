@@ -290,8 +290,8 @@ public class DbConnection extends MySQLConnection {
 		case TransactionRecord.TRANS_TYPE_STOCK_MOVE_IN:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, refer_transaction_id, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, refer_transaction_id, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -311,14 +311,15 @@ public class DbConnection extends MySQLConnection {
 			ps.setInt(16, transactionRecord.refer_transaction_id);
 			ps.setInt(17, transactionRecord.status);
 			ps.setString(18, transactionRecord.result_description);
+			ps.setInt(19, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;
 		case TransactionRecord.TRANS_TYPE_RECHARGE_VOUCHER:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "recharge_msidn, recharge_value, recharge_sub_type, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "recharge_msidn, recharge_value, recharge_sub_type, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -336,14 +337,15 @@ public class DbConnection extends MySQLConnection {
 			ps.setInt(14, transactionRecord.recharge_sub_type);
 			ps.setInt(15, transactionRecord.status);
 			ps.setString(16, transactionRecord.result_description);
+			ps.setInt(17, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;
 		case TransactionRecord.TRANS_TYPE_BULK_RECHARGE:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,`batch_recharge_id`,`batch_recharge_succes`,`batch_recharge_fail`) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,`batch_recharge_id`,`batch_recharge_succes`,`batch_recharge_fail`, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -364,6 +366,7 @@ public class DbConnection extends MySQLConnection {
 			ps.setInt(17, transactionRecord.batch_recharge_id);
 			ps.setInt(18, transactionRecord.batch_recharge_succes);
 			ps.setInt(19, transactionRecord.batch_recharge_fail);
+			ps.setInt(20, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;
@@ -373,8 +376,8 @@ public class DbConnection extends MySQLConnection {
 		case TransactionRecord.TRANS_TYPE_CANCEL_DEALER:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, approved, approved_id, remark, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "agent, agent_id, approved, approved_id, remark, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -395,14 +398,15 @@ public class DbConnection extends MySQLConnection {
 			ps.setString(17, transactionRecord.remark);
 			ps.setInt(18, transactionRecord.status);
 			ps.setString(19, transactionRecord.result_description);
+			ps.setInt(20, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;
 		case TransactionRecord.TRANS_TYPE_ADD_RETAILER:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_parent_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, approved, approved_id, remark, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "agent, agent_id, approved, approved_id, remark, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -424,14 +428,15 @@ public class DbConnection extends MySQLConnection {
 			ps.setString(18, transactionRecord.remark);
 			ps.setInt(19, transactionRecord.status);
 			ps.setString(20, transactionRecord.result_description);
+			ps.setInt(21, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;
 		case TransactionRecord.TRANS_TYPE_STOCK_ALLOCATION:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, approved, approved_id, cash_value, commision_value, promotion_value, iv_cash_kip, iv_cash_baht, iv_cash_usd, iv_cash_yuan, iv_rate_baht, iv_rate_usd, iv_rate_yuan, iv_paymode, iv_payinfo, refer_transaction_id, remark, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "agent, agent_id, approved, approved_id, cash_value, commision_value, promotion_value, iv_cash_kip, iv_cash_baht, iv_cash_usd, iv_cash_yuan, iv_rate_baht, iv_rate_usd, iv_rate_yuan, iv_paymode, iv_payinfo, refer_transaction_id, remark, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -465,14 +470,15 @@ public class DbConnection extends MySQLConnection {
 			ps.setString(30, transactionRecord.remark);
 			ps.setInt(31, transactionRecord.status);
 			ps.setString(32, transactionRecord.result_description);
+			ps.setInt(33, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;
 		case TransactionRecord.TRANS_TYPE_CANCEL_RECHARGE_VOUCHER:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,approved, approved_id,refer_transaction_id,batch_recharge_id, remark) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,agent,agent_id,approved, approved_id,refer_transaction_id,batch_recharge_id, remark, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -498,6 +504,7 @@ public class DbConnection extends MySQLConnection {
 			ps.setInt(22, transactionRecord.refer_transaction_id);
 			ps.setInt(23, transactionRecord.batch_recharge_id);
 			ps.setString(24, transactionRecord.remark);
+			ps.setInt(25, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;	
@@ -505,8 +512,8 @@ public class DbConnection extends MySQLConnection {
 		case TransactionRecord.TRANS_TYPE_CANCEL_STOCK_MOVE_IN:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, status, result_description,agent,agent_id,approved, approved_id,refer_transaction_id,remark) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "partner_msisdn, partner_id, partner_balance_before, partner_balance_after, status, result_description,agent,agent_id,approved, approved_id,refer_transaction_id,remark,service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -532,14 +539,15 @@ public class DbConnection extends MySQLConnection {
 			ps.setInt(22, transactionRecord.approved_id);
 			ps.setInt(23, transactionRecord.refer_transaction_id);
 			ps.setString(24, transactionRecord.remark);
+			ps.setInt(25, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;  
 		case TransactionRecord.TRANS_TYPE_CANCEL_STOCK_ALLOCATION:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, approved, approved_id, refer_transaction_id, remark, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "agent, agent_id, approved, approved_id, refer_transaction_id, remark, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -561,14 +569,15 @@ public class DbConnection extends MySQLConnection {
 			ps.setString(18, transactionRecord.remark);
 			ps.setInt(19, transactionRecord.status);
 			ps.setString(20, transactionRecord.result_description);
+			ps.setInt(21, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;
 		case TransactionRecord.TRANS_TYPE_MOVE_OUT_DEALER_PROVINCE_SOURCE:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_category, customer_care, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, approved, approved_id, dealer_province, dealer_new_id, dealer_new_province, refer_transaction_id, remark, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "agent, agent_id, approved, approved_id, dealer_province, dealer_new_id, dealer_new_province, refer_transaction_id, remark, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -592,14 +601,15 @@ public class DbConnection extends MySQLConnection {
 			ps.setString(20, transactionRecord.remark);
 			ps.setInt(21, transactionRecord.status);
 			ps.setString(22, transactionRecord.result_description);
+			ps.setInt(23, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break; 	
 		case TransactionRecord.TRANS_TYPE_MOVE_IN_DEALER_PROVINCE_DESTINATION:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_category, customer_care, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, approved, approved_id, dealer_province, refer_transaction_id, remark, status, result_description) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "agent, agent_id, approved, approved_id, dealer_province, refer_transaction_id, remark, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -621,6 +631,7 @@ public class DbConnection extends MySQLConnection {
 			ps.setString(18, transactionRecord.remark);
 			ps.setInt(19, transactionRecord.status);
 			ps.setString(20, transactionRecord.result_description);
+			ps.setInt(21, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break; 

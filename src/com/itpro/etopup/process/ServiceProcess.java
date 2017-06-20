@@ -513,6 +513,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.result_description = "Delete Dealer successfully";
 					transactionRecord.remark = agentRequest.remark;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+					transactionRecord.service_trans_id = transactionRecord.id;
 					insertTransactionRecord(transactionRecord);
 					agentRequest.status = AgentRequest.STATUS_SUCCESS;
 					agentRequest.dealer_id = dealerInfo.id;
@@ -638,6 +639,9 @@ public class ServiceProcess extends ProcessingThread {
 				transactionMoveDealerProvinceDest.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 				transactionMoveDealerProvinceSource.refer_transaction_id = transactionMoveDealerProvinceDest.id;
 				transactionMoveDealerProvinceDest.refer_transaction_id = transactionMoveDealerProvinceSource.id;
+				
+				transactionMoveDealerProvinceSource.service_trans_id = transactionMoveDealerProvinceSource.id;
+				transactionMoveDealerProvinceDest.service_trans_id = transactionMoveDealerProvinceSource.id;
 				insertTransactionRecord(transactionMoveDealerProvinceSource);
 				insertTransactionRecord(transactionMoveDealerProvinceDest);
 				
@@ -731,6 +735,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.result_description = "Stock Allocation successfully";
 					transactionRecord.remark = agentRequest.remark;
 					transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+					transactionRecord.service_trans_id = transactionRecord.id;
 					insertTransactionRecord(transactionRecord);
 					agentRequest.status = AgentRequest.STATUS_SUCCESS;
 					agentRequest.dealer_id = dealerInfo.id;
@@ -866,6 +871,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.result_description = dealerInfo.parent_id>0?"Add Retailer successfully":"Add Dealer successfully";
 			transactionRecord.remark = agentRequest.remark;
 			transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
+			transactionRecord.service_trans_id = transactionRecord.id;
 			insertTransactionRecord(transactionRecord);
 			agentRequest.status = AgentRequest.STATUS_SUCCESS;
 			agentRequest.dealer_id = dealerInfo.id;
@@ -1016,6 +1022,7 @@ public class ServiceProcess extends ProcessingThread {
         transactionRecord.refer_transaction_id=old_transactionRecord.id;
         transactionRecord.transaction_amount_req=agentRequest.refund_amount;
         transactionRecord.remark = agentRequest.remark;
+        transactionRecord.service_trans_id = old_transactionRecord.id;
         agentRequest.transaction_id=transactionRecord.id;
         
         if( old_transactionRecord.type==TransactionRecord.TRANS_TYPE_RECHARGE_VOUCHER){
@@ -1261,6 +1268,7 @@ public class ServiceProcess extends ProcessingThread {
 					cancelStockMoveInTransaction.remark = transactionRecord.remark;
 					cancelStockMoveInTransaction.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 					cancelStockMoveInTransaction.result_description = "Cancel Stock Move In successfully";
+					cancelStockMoveInTransaction.service_trans_id = transactionRecord.service_trans_id;
 					insertTransactionRecord(cancelStockMoveInTransaction);
                 }
                 else{
@@ -1616,7 +1624,7 @@ public class ServiceProcess extends ProcessingThread {
 					transactionRecord.balance_after=batchRechargeElement.balanceAfter;  // save for create recharge cdr
 					createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
 					if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-		                onBatchRechargeDone(requestInfo);
+		                OnBatchRechargeDone(requestInfo);
 		            }
 		            else{
 		                batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
@@ -1667,7 +1675,7 @@ public class ServiceProcess extends ProcessingThread {
             updateBatchRechargeElement(batchRechargeElement);
             createRechargeCdrRecordForOnPaymentPostpaidCmd(paymentPostpaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED);
             if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-                onBatchRechargeDone(requestInfo);
+                OnBatchRechargeDone(requestInfo);
             }
             else{
                 batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
@@ -1891,7 +1899,7 @@ public class ServiceProcess extends ProcessingThread {
                     transactionRecord.balance_after=batchRechargeElement.balanceAfter;  // save for create recharge cdr
                     createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_SUCCESS); 
                     if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-                        onBatchRechargeDone(requestInfo);
+                        OnBatchRechargeDone(requestInfo);
                     }
                     else{
                         batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
@@ -1942,7 +1950,7 @@ public class ServiceProcess extends ProcessingThread {
             updateBatchRechargeElement(batchRechargeElement);
             createRechargeCdrRecordForTopupPrepaid(topupPrepaidCmdResp, RechargeCdrRecord.TYPE_BATCH_RECHARGE,RechargeCdrRecord.STATUS_FAILED); 
             if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-                onBatchRechargeDone(requestInfo);
+                OnBatchRechargeDone(requestInfo);
             }
             else{
                 batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
@@ -2060,7 +2068,7 @@ public class ServiceProcess extends ProcessingThread {
 			updateBatchRechargeElement(batchRechargeElement);
 			
 			if(batchRechargeCmd.batchRechargeElements.isEmpty()){
-			    onBatchRechargeDone(requestInfo);
+			    OnBatchRechargeDone(requestInfo);
 			}
 			else{
 				batchRechargeCmd.currentBatchRechargeElement = batchRechargeCmd.batchRechargeElements.remove(0);
@@ -2069,7 +2077,7 @@ public class ServiceProcess extends ProcessingThread {
 		}
 	}
 
-    private void onBatchRechargeDone(RequestInfo requestInfo) {
+    private void OnBatchRechargeDone(RequestInfo requestInfo) {
         DealerRequest dealerRequest = requestInfo.dealerRequest;
         TransactionRecord transactionRecord = requestInfo.transactionRecord;
         transactionRecord.type = TransactionRecord.TRANS_TYPE_BULK_RECHARGE;
@@ -2657,6 +2665,7 @@ public class ServiceProcess extends ProcessingThread {
 			transactionRecord.recharge_value = 0;
 			transactionRecord.transaction_amount_req=-1*batchRechargeCmd.batch_recharge_total_amount;
 			transactionRecord.batch_recharge_id=batchRechargeCmd.batch_recharge_id;
+			transactionRecord.service_trans_id = transactionRecord.id;
 			dealerRequest.dealer_id = dealerInfo.id;
 			dealerRequest.transaction_id = transactionRecord.id;
 			transactionRecord.status = TransactionRecord.TRANS_STATUS_SUCCESS;
@@ -2719,6 +2728,7 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecord.balance_changed_amount = 0;
 		transactionRecord.recharge_msidn = rechargeCmd.rechargeMsisdn;
 		transactionRecord.recharge_value = rechargeCmd.amount;
+		transactionRecord.service_trans_id = transactionRecord.id;
 		dealerRequest.dealer_id = dealerInfo.id;
 		dealerRequest.transaction_id = transactionRecord.id;
 		
@@ -2851,6 +2861,7 @@ public class ServiceProcess extends ProcessingThread {
 		transactionRecordStockMoveOut.transaction_amount_req = -1*moveStockCmd.amount;
 		transactionRecordStockMoveOut.balance_before = dealerInfo.balance;
 		transactionRecordStockMoveOut.balance_changed_amount = 0;
+		transactionRecordStockMoveOut.service_trans_id = transactionRecordStockMoveOut.id;
 		
 		String receiverMsisdn = "";
 		if(moveStockCmd.receiverMsisdn.startsWith("0202") && moveStockCmd.receiverMsisdn.length()==11){
@@ -3101,7 +3112,7 @@ public class ServiceProcess extends ProcessingThread {
 							
 							transactionRecordStockMoveIn.status = TransactionRecord.TRANS_STATUS_SUCCESS;
 							transactionRecordStockMoveIn.result_description = "Stock Move In successfully";
-							
+							transactionRecordStockMoveIn.service_trans_id = transactionRecordStockMoveOut.id;
 							insertTransactionRecord(transactionRecordStockMoveOut);
 							insertTransactionRecord(transactionRecordStockMoveIn);
 						}

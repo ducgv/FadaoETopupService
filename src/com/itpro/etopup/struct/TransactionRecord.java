@@ -58,6 +58,7 @@ public class TransactionRecord {
 	}
 	
 	public int id;
+	public int service_trans_id;
 	public int type;
 	public Timestamp date_time;
 	public String dealer_msisdn;
