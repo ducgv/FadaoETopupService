@@ -12,6 +12,7 @@ import com.itpro.etopup.struct.DealerRequest;
 public class RechargeCmd extends RequestCmd {
 	public String rechargeMsisdn;
 	public int amount;
+	public boolean checkPin = true;
 	public int db_return_code;
 	public int balanceAfter;
 	public RechargeCmd() {

@@ -12,6 +12,7 @@ import com.itpro.etopup.struct.AgentInfo;
 import com.itpro.etopup.struct.AgentRequest;
 import com.itpro.etopup.struct.DealerInfo;
 import com.itpro.etopup.struct.DealerRequest;
+import com.itpro.etopup.struct.DeleteDealerCmd;
 import com.itpro.etopup.struct.MTRecord;
 import com.itpro.etopup.struct.MoveDealerProvinceCmd;
 import com.itpro.etopup.struct.Province;
@@ -338,7 +339,7 @@ public class DbConnection extends MySQLConnection {
 			ps.execute();
 			ps.close();
 			break;
-		case TransactionRecord.TRANS_TYPE_BATCH_RECHARGE:
+		case TransactionRecord.TRANS_TYPE_BULK_RECHARGE:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
 					+ "recharge_msidn, recharge_value, recharge_sub_type, status, result_description,`batch_recharge_id`,`batch_recharge_succes`,`batch_recharge_fail`) "
@@ -369,7 +370,7 @@ public class DbConnection extends MySQLConnection {
 			
 		//Transactions for Agent Request	
 		case TransactionRecord.TRANS_TYPE_ADD_DEALER:
-		case TransactionRecord.TRANS_TYPE_DELETE_DEALER:
+		case TransactionRecord.TRANS_TYPE_CANCEL_DEALER:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
 					+ "agent, agent_id, approved, approved_id, remark, status, result_description) "
@@ -563,7 +564,7 @@ public class DbConnection extends MySQLConnection {
 			ps.execute();
 			ps.close();
 			break;
-		case TransactionRecord.TRANS_TYPE_MOVE_DEALER_PROVINCE_SOURCE:
+		case TransactionRecord.TRANS_TYPE_MOVE_OUT_DEALER_PROVINCE_SOURCE:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_category, customer_care, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
 					+ "agent, agent_id, approved, approved_id, dealer_province, dealer_new_id, dealer_new_province, refer_transaction_id, remark, status, result_description) "
@@ -594,7 +595,7 @@ public class DbConnection extends MySQLConnection {
 			ps.execute();
 			ps.close();
 			break; 	
-		case TransactionRecord.TRANS_TYPE_MOVE_DEALER_PROVINCE_DESTINATION:
+		case TransactionRecord.TRANS_TYPE_MOVE_IN_DEALER_PROVINCE_DESTINATION:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_category, customer_care, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
 					+ "agent, agent_id, approved, approved_id, dealer_province, refer_transaction_id, remark, status, result_description) "
@@ -828,14 +829,16 @@ public class DbConnection extends MySQLConnection {
 		ps.close();
 	}
 
-	public void deleteDealer(DealerInfo dealerInfo) throws SQLException {
+	public void deleteDealer(DeleteDealerCmd deleteDealerCmd) throws SQLException {
 		// TODO Auto-generated method stub
-		PreparedStatement ps = null;		
-		ps=connection.prepareStatement("UPDATE dealers SET active = ? WHERE id = ?");
-		ps.setInt(1,DealerInfo.STATUS_DELETED);
-		ps.setInt(2,dealerInfo.id);
-		ps.executeUpdate();
-		ps.close();
+		String sql = "{call delete_dealer (?, ?)}";
+		CallableStatement stmt = null;
+		stmt = connection.prepareCall(sql);
+		stmt.setInt(1, deleteDealerCmd.dealer_id);
+		stmt.registerOutParameter(2, java.sql.Types.INTEGER);
+		stmt.execute();
+		deleteDealerCmd.db_return_code = stmt.getInt(2);
+		stmt.close();
 	}
 	
 	public void updateAgentRequest(AgentRequest agentRequest) throws SQLException {
@@ -1016,26 +1019,27 @@ public class DbConnection extends MySQLConnection {
     public void insertRechargeCdr(RechargeCdrRecord rechargeCdrRecord) throws SQLException {
         // TODO Auto-generated method stub
         PreparedStatement ps = null;
-        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`dealer_category`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_province`,`receiver_sub_type`,`recharge_value`,`transaction_id`,`result`,`result_code`,`result_description`) "
-                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`dealer_category`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_province`,`receiver_sub_type`,`recharge_value`,`transaction_id`,`result`,`result_code`,`result_description`) "
+                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         ps=connection.prepareStatement(sql);
         ps.setInt(1,rechargeCdrRecord.payment_transaction_id);
         ps.setTimestamp(2,rechargeCdrRecord.date_time);
         ps.setInt(3,rechargeCdrRecord.type);
         ps.setString(4,rechargeCdrRecord.dealer_msisdn);
         ps.setInt(5,rechargeCdrRecord.dealer_id);
-        ps.setInt(6, rechargeCdrRecord.dealer_category);
-        ps.setInt(7,rechargeCdrRecord.balance_changed_amount);
-        ps.setLong(8,rechargeCdrRecord.balance_before);
-        ps.setLong(9,rechargeCdrRecord.balance_after);
-        ps.setString(10,rechargeCdrRecord.receiver_msidn);
-        ps.setInt(11, rechargeCdrRecord.receiver_province);
-        ps.setInt(12,rechargeCdrRecord.receiver_sub_type);
-        ps.setInt(13,rechargeCdrRecord.recharge_value);
-        ps.setInt(14,rechargeCdrRecord.transaction_id);
-        ps.setInt(15,rechargeCdrRecord.result);
-        ps.setInt(16,rechargeCdrRecord.result_code);
-        ps.setString(17,rechargeCdrRecord.result_description);
+        ps.setInt(6,rechargeCdrRecord.dealer_province);
+        ps.setInt(7, rechargeCdrRecord.dealer_category);
+        ps.setInt(8,rechargeCdrRecord.balance_changed_amount);
+        ps.setLong(9,rechargeCdrRecord.balance_before);
+        ps.setLong(10,rechargeCdrRecord.balance_after);
+        ps.setString(11,rechargeCdrRecord.receiver_msidn);
+        ps.setInt(12, rechargeCdrRecord.receiver_province);
+        ps.setInt(13,rechargeCdrRecord.receiver_sub_type);
+        ps.setInt(14,rechargeCdrRecord.recharge_value);
+        ps.setInt(15,rechargeCdrRecord.transaction_id);
+        ps.setInt(16,rechargeCdrRecord.result);
+        ps.setInt(17,rechargeCdrRecord.result_code);
+        ps.setString(18,rechargeCdrRecord.result_description);
         ps.execute();
         ps.close();
     }

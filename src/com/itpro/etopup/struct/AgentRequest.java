@@ -24,12 +24,12 @@ public class AgentRequest {
 
 	//-----------------------------------------------------------
 
-	public static final int RC_ADD_DEALER_SUCCESS 			= 0;
-	public static final int RC_ADD_RETAILER_SUCCESS 		= 1;
-	public static final int RC_STOCK_ALLOCATION_SUCCESS 				= 2;
-	public static final int RC_CANCEL_STOCK_ALLOCATION_SUCCESS 		= 3;
+	public static final int RC_ADD_DEALER_SUCCESS 				= 0;
+	public static final int RC_ADD_RETAILER_SUCCESS 			= 1;
+	public static final int RC_STOCK_ALLOCATION_SUCCESS 		= 2;
+	public static final int RC_CANCEL_STOCK_ALLOCATION_SUCCESS 	= 3;
 	public static final int RC_MOVE_DEALER_PROVINCE_SUCCESS 	= 4;
-	public static final int RC_CANCEL_STOCK_MOVE_OUT_SUCCESS 		= 5;
+	public static final int RC_CANCEL_STOCK_MOVE_OUT_SUCCESS 	= 5;
 	public static final int RC_CANCEL_RECHARGE_VOUCHER_SUCCESS 			= 6;
 	public static final int RC_CANCEL_BATCH_RECHARGE_VOUCHER_SUCCESS 	= 7;
 	public static final int RC_DEALER_NOT_FOUND 				= 8;
@@ -46,25 +46,27 @@ public class AgentRequest {
 	public static final int RC_CANCEL_AMOUNT_GREATER_THAN_TRANSACTION_AMOUNT	= 19;
 	public static final int RC_CANCEL_AMOUNT_GREATER_THAN_RECHARGE_AMOUNT 		= 20;
 	public static final int RC_CANCEL_TRANSACTION_TYPE_NOT_VALID 				= 21;
-	public static final int RC_CANCEL_BATCH_RECHARGE_VOUCHER_NOT_FOUND 		= 22;
-	public static final int RC_CANCEL_STOCK_MOVE_OUT_RECEIVER_NOT_FOUND 			= 23;
-	public static final int RC_CANCEL_RECHARGE_VOUCHER_CHARGING_FAILED 					= 24;
+	public static final int RC_CANCEL_BATCH_RECHARGE_VOUCHER_NOT_FOUND 			= 22;
+	public static final int RC_CANCEL_MOVE_STOCK_RECEIVER_NOT_FOUND 			= 23;
+	public static final int RC_CANCEL_RECHARGE_VOUCHER_CHARGING_FAILED 			= 24;
 	public static final int RC_CALL_MOVE_STOCK_DB_FUNCTION_ERROR 				= 25;
-	public static final int RC_CANCEL_STOCK_MOVE_OUT_RECEIVER_BALANCE_NOT_ENOUGH 	= 26;
-	public static final int RC_CANCEL_RECHARGE_VOUCHER_BALANCE_NOT_ENOUGH 	= 27;
-	public static final int RC_CANCEL_RECHARGE_VOUCHER_GET_SUBSCRIBER_INFO_FAILED 		= 28;
-	public static final int RC_CANCEL_BATCH_RECHARGE_VOUCHER_FAILED 					= 29;
-	public static final int RC_STOCK_ALLOCATION_REJECTED_CAUSE_IS_RETAILER 				= 30;
-	public static final int RC_RESET_PIN_SUCCESS 								= 31;
-	public static final int RC_DEALER_HAS_RETAILER 								= 32;
-	public static final int RC_MUST_CLEAR_STOCK_BEFORE 							= 33;
-	public static final int RC_DELETE_DEALER_SUCCESS 							= 34;
+	public static final int RC_RECEIVER_BALANCE_NOT_ENOUGH 						= 26;
+	public static final int RC_GET_SUBSCRIBER_INFO_FAILED 						= 27;
+	public static final int RC_CANCEL_BATCH_RECHARGE_VOUCHER_FAILED 			= 28;
+	public static final int RC_STOCK_ALLOCATION_REJECTED_CAUSE_IS_RETAILER 		= 29;
+	public static final int RC_RESET_PIN_SUCCESS 								= 30;
+	public static final int RC_DEALER_HAS_RETAILER 								= 31;
+	public static final int RC_MUST_CLEAR_STOCK_BEFORE 							= 32;
+	public static final int RC_DELETE_DEALER_SUCCESS 							= 33;
+	public static final int RC_DELETE_DEALER_DB_FUNCTION_ERROR 					= 34;
+	public static final int RC_CANCEL_AMOUNT_NOT_VALID 							= 35;
 	
 	public static String[] reqTypeString;
 	public static String[] resultString;
 	
 	public static final int STATUS_SUCCESS = 2;
 	public static final int STATUS_FAILED = 3;
+	
 	
 	
 	
@@ -82,7 +84,7 @@ public class AgentRequest {
 
 		//-----------------------------------------------------------
 		
-		resultString = new String[35];		
+		resultString = new String[36];		
 		resultString[RC_ADD_DEALER_SUCCESS] 		= "ADD_DEALER_SUCCESS";
 		resultString[RC_ADD_RETAILER_SUCCESS] 		= "ADD_RETAILER_SUCCESS";
 		resultString[RC_STOCK_ALLOCATION_SUCCESS] 			= "STOCK_ALLOCATION_SUCCESS";
@@ -106,18 +108,19 @@ public class AgentRequest {
 		resultString[RC_CANCEL_AMOUNT_GREATER_THAN_RECHARGE_AMOUNT] 	= "CANCEL_AMOUNT_GREATER_THAN_RECHARGE_AMOUNT";
 		resultString[RC_CANCEL_TRANSACTION_TYPE_NOT_VALID] 				= "CANCEL_TRANSACTION_TYPE_NOT_VALID";
 		resultString[RC_CANCEL_BATCH_RECHARGE_VOUCHER_NOT_FOUND] 		= "CANCEL_BATCH_RECHARGE_VOUCHER_NOT_FOUND";
-		resultString[RC_CANCEL_STOCK_MOVE_OUT_RECEIVER_NOT_FOUND] 		= "CANCEL_STOCK_MOVE_OUT_RECEIVER_NOT_FOUND";
+		resultString[RC_CANCEL_MOVE_STOCK_RECEIVER_NOT_FOUND] 			= "CANCEL_MOVE_STOCK_RECEIVER_NOT_FOUND";
 		resultString[RC_CANCEL_RECHARGE_VOUCHER_CHARGING_FAILED] 		= "CANCEL_RECHARGE_VOUCHER_CHARGING_FAILED";
 		resultString[RC_CALL_MOVE_STOCK_DB_FUNCTION_ERROR] 				= "CALL_MOVE_STOCK_DB_FUNCTION_ERROR";
-		resultString[RC_CANCEL_STOCK_MOVE_OUT_RECEIVER_BALANCE_NOT_ENOUGH] 		= "CANCEL_STOCK_MOVE_OUT_RECEIVER_BALANCE_NOT_ENOUGH";
-		resultString[RC_CANCEL_RECHARGE_VOUCHER_BALANCE_NOT_ENOUGH] 			= "CANCEL_RECHARGE_VOUCHER_BALANCE_NOT_ENOUGH";
-		resultString[RC_CANCEL_RECHARGE_VOUCHER_GET_SUBSCRIBER_INFO_FAILED] 	= "CANCEL_RECHARGE_VOUCHER_GET_SUBSCRIBER_INFO_FAILED";
+		resultString[RC_RECEIVER_BALANCE_NOT_ENOUGH] 					= "RECEIVER_BALANCE_NOT_ENOUGH";
+		resultString[RC_GET_SUBSCRIBER_INFO_FAILED] 					= "GET_SUBSCRIBER_INFO_FAILED";
 		resultString[RC_CANCEL_BATCH_RECHARGE_VOUCHER_FAILED] 			= "CANCEL_BATCH_RECHARGE_VOUCHER_FAILED";
 		resultString[RC_STOCK_ALLOCATION_REJECTED_CAUSE_IS_RETAILER] 	= "ALLOCATION_REJECTED_CAUSE_IS_RETAILER";
 		resultString[RC_RESET_PIN_SUCCESS] 								= "RESET_PIN_SUCCESS";
-		resultString[RC_DEALER_HAS_RETAILER] 								= "DEALER_HAS_RETAILER";
-		resultString[RC_MUST_CLEAR_STOCK_BEFORE] 								= "MUST_CLEAR_STOCK_BEFORE";
-		resultString[RC_DELETE_DEALER_SUCCESS] 								= "DELETE_DEALER_SUCCESS";
+		resultString[RC_DEALER_HAS_RETAILER] 							= "DEALER_HAS_RETAILER";
+		resultString[RC_MUST_CLEAR_STOCK_BEFORE] 						= "MUST_CLEAR_STOCK_BEFORE";
+		resultString[RC_DELETE_DEALER_SUCCESS] 							= "DELETE_DEALER_SUCCESS";
+		resultString[RC_DELETE_DEALER_DB_FUNCTION_ERROR] 				= "DELETE_DEALER_DB_FUNCTION_ERROR";
+		resultString[RC_CANCEL_AMOUNT_NOT_VALID] 						= "CANCEL_AMOUNT_NOT_VALID";
 	}
 	
 	public int id;

@@ -71,7 +71,15 @@ public class DealerRequest {
 				requestCmd=batchRechargeCmd;
 			}
 			else{
-				cmd_type = CMD_TYPE_WRONG_SYNTAX;
+				cmd_type = CMD_TYPE_RECHARGE;
+				RechargeCmd rechargeToOwnerCmd2 = new RechargeCmd();
+				rechargeToOwnerCmd2.msisdn = msisdn;
+				rechargeToOwnerCmd2.checkPin = false;
+				rechargeToOwnerCmd2.rechargeMsisdn = msisdn.replaceFirst("856", "");
+				rechargeToOwnerCmd2.amount = Integer.parseInt(cmd_params[1]);
+				if(rechargeToOwnerCmd2.amount<1000)
+					rechargeToOwnerCmd2.amount = rechargeToOwnerCmd2.amount*1000;
+				requestCmd = rechargeToOwnerCmd2;
 			}
 			break;
 		case 3:
