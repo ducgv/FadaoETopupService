@@ -25,7 +25,7 @@ public class GetSubInfoCmd extends PaymentGWCmd {
 	public int subType;
 	public int state;
 	public int balance = 0;
-	public String subId = "";
+//	public String subId = "";
 	public String detail = "";
 	
 	@Override
@@ -47,7 +47,7 @@ public class GetSubInfoCmd extends PaymentGWCmd {
 				"; transactionId:"+transactionId+
 				"; activeDate:"+activeDate==null?"NULL":(new SimpleDateFormat("yyyy-MM-dd")).format(activeDate)+
 				"; subType:"+subType+
-				"; subId:"+subId+
+//				"; subId:"+subId+
 				"; balance:"+balance+
 				"; state:"+state+
 				"; resultCode:"+resultCode+

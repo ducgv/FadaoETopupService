@@ -23,6 +23,9 @@ public class PaymentGWResultCode {
 	//ext
 	public static final int RC_CALL_SOAP_ERROR 	= 10000; //Call SOAP function error
 	public static final int RC_TIMEOUT 			= 10001; //Timeout
+	public static final int RC_GET_PROMOTION_INFO_FAILED 	= 10002; //Timeout
+	public static final int RC_PAYMENTGW_RESULT_NULL = 10003;
+	public static final int RC_PAYMENTGW_RESULT_WRONG_FORMAT = 10004;
 	
 	public static Hashtable<Integer, String> resultDesc = new Hashtable<Integer, String>();
 	

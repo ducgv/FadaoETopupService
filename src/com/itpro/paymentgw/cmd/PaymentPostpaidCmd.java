@@ -6,6 +6,8 @@ package com.itpro.paymentgw.cmd;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import com.itpro.etopup.struct.Promotion;
+
 /**
  * @author ducgv
  *
@@ -21,7 +23,13 @@ public class PaymentPostpaidCmd extends PaymentGWCmd {
 	//response
 	public int advanceBalance;
 	public int debitBalance;
+	public GetSubInfoCmd subInfo;
+	public int balanceBonus = 0;
+	public int dataBonus = 0;
+	public String originalNumber;
 	
+	public Promotion promotionBalanceInfo;
+	public Promotion promotionDataInfo;
 	
 	@Override
 	public String getReqString() {
@@ -29,6 +37,9 @@ public class PaymentPostpaidCmd extends PaymentGWCmd {
 		return "PaymentPostpaidReq: msisdn:"+rechargeMsisdn+
 				"; transactionId:"+transactionId+
 				"; reqDate:"+(new SimpleDateFormat("yyyyMMdd")).format(reqDate)+
+				"; balanceBonus:"+balanceBonus+
+				"; dataBonus:"+dataBonus+
+				"; originalNumber:"+originalNumber+
 				"; token:"+token;
 				
 	}

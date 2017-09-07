@@ -36,7 +36,7 @@ public class PaymentGWSession extends ProcessingThread {
 		this.userCmd = userCmd;
 		this.queueResp = queueResp;
 	}
-	
+
 	//private Vasgateway_ServiceLocator serviceLocator;
 	private PaymentGWCmd userCmd;
 	private Queue queueResp;
@@ -90,22 +90,59 @@ public class PaymentGWSession extends ProcessingThread {
 	private void OnPaymentPostpaidCmd(PaymentPostpaidCmd paymentPostpaidCmd) {
 		// TODO Auto-generated method stub
 		logInfo(paymentPostpaidCmd.getReqString());
-		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
-		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSPaymentPospaidResult result = service.paymentPostpaid(paymentPostpaidCmd.rechargeMsisdn, ""+paymentPostpaidCmd.amount, ""+paymentPostpaidCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(paymentPostpaidCmd.reqDate), paymentPostpaidCmd.token);
-		paymentPostpaidCmd.result = PaymentGWResultCode.R_SUCCESS;
-		paymentPostpaidCmd.advanceBalance = result.getMsisdnAdvanceBalance().isNil()?0:Integer.parseInt(result.getMsisdnAdvanceBalance().getValue());
-		paymentPostpaidCmd.debitBalance = result.getMsisdnDebitBalance().isNil()?0:Integer.parseInt(result.getMsisdnDebitBalance().getValue());
-		TopupPaymentApiWSPaymentPostpaidHeader header = result.getPaymentPostpaidHeader().isNil()?null:result.getPaymentPostpaidHeader().getValue();
-		if(header!=null){
-			paymentPostpaidCmd.resultCode=Integer.parseInt(header.getResultcode().getValue());
-			paymentPostpaidCmd.resultString=header.getResultDes().getValue();
+		TopupPaymentApiWS topupPaymentApiWS = null;
+		TopupPaymentApiWSPortType service = null;
+		TopupPaymentApiWSPaymentPospaidResult result = null;
+		try {
+			topupPaymentApiWS = new TopupPaymentApiWS();
+			service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
+			result = service.paymentPostpaid(paymentPostpaidCmd.rechargeMsisdn, ""+paymentPostpaidCmd.amount, ""+paymentPostpaidCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(paymentPostpaidCmd.reqDate), ""+paymentPostpaidCmd.balanceBonus, ""+paymentPostpaidCmd.dataBonus, paymentPostpaidCmd.originalNumber, paymentPostpaidCmd.token);
+		} catch (Exception e) {
+			// TODO: handle exception
+			paymentPostpaidCmd.result = PaymentGWResultCode.R_ERROR;
+			paymentPostpaidCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			paymentPostpaidCmd.resultString=e.getMessage();
+			logInfo(paymentPostpaidCmd.getRespString());
+			queueResp.enqueue(paymentPostpaidCmd);
+			return;
 		}
-		else{
-			paymentPostpaidCmd.resultCode=-1;
-			paymentPostpaidCmd.resultString="Call API function error";
+
+		paymentPostpaidCmd.result = PaymentGWResultCode.R_SUCCESS;
+		try {
+			paymentPostpaidCmd.advanceBalance = result.getMsisdnAdvanceBalance().isNil()?0:Integer.parseInt(result.getMsisdnAdvanceBalance().getValue());
+		} catch (Exception e) {
+			// TODO: handle exception
+			logWarning("OnPaymentPostpaidCmd: Error when parse MsisdnAdvanceBalance field of msisdn "+paymentPostpaidCmd.msisdn);
+			paymentPostpaidCmd.advanceBalance = 0;
 		}
 		
+		try {
+			paymentPostpaidCmd.debitBalance = result.getMsisdnDebitBalance().isNil()?0:Integer.parseInt(result.getMsisdnDebitBalance().getValue());
+		} catch (Exception e) {
+			// TODO: handle exception
+			logWarning("OnPaymentPostpaidCmd: Error when parse MsisdnDebitBalance field of msisdn "+paymentPostpaidCmd.msisdn);
+			paymentPostpaidCmd.debitBalance = 0;
+		}
+		
+		TopupPaymentApiWSPaymentPostpaidHeader header = result.getPaymentPostpaidHeader().isNil()?null:result.getPaymentPostpaidHeader().getValue();
+		if(header!=null){
+			try {
+				paymentPostpaidCmd.resultCode=header.getResultcode().isNil()?PaymentGWResultCode.RC_PAYMENTGW_RESULT_NULL:Integer.parseInt(header.getResultcode().getValue());
+				paymentPostpaidCmd.resultString=header.getResultDes().getValue();
+			} catch (Exception e) {
+				// TODO: handle exception
+				paymentPostpaidCmd.resultCode = PaymentGWResultCode.RC_PAYMENTGW_RESULT_WRONG_FORMAT;
+				paymentPostpaidCmd.resultString = "PaymentGW ResultCode:"+header.getResultcode().getValue();
+				paymentPostpaidCmd.result = PaymentGWResultCode.R_ERROR;
+			}
+			
+		}
+		else{
+			paymentPostpaidCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			paymentPostpaidCmd.resultString=PaymentGWResultCode.resultDesc.get(PaymentGWResultCode.RC_CALL_SOAP_ERROR);
+			paymentPostpaidCmd.result = PaymentGWResultCode.R_ERROR;
+		}
+
 		logInfo(paymentPostpaidCmd.getRespString());
 		queueResp.enqueue(paymentPostpaidCmd);
 	}
@@ -113,29 +150,57 @@ public class PaymentGWSession extends ProcessingThread {
 	private void OnTopupPrepaidCmd(TopupPrepaidCmd topupPrepaidCmd) {
 		// TODO Auto-generated method stub
 		logInfo(topupPrepaidCmd.getReqString());
-		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
-		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSTopupPrepaidResult result = service.topupPrepaid(topupPrepaidCmd.rechargeMsisdn, ""+topupPrepaidCmd.amount, ""+topupPrepaidCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(topupPrepaidCmd.reqDate), topupPrepaidCmd.token);
+		TopupPaymentApiWS topupPaymentApiWS = null;
+		TopupPaymentApiWSPortType service = null;
+		TopupPaymentApiWSTopupPrepaidResult result = null;
+		try {
+			topupPaymentApiWS = new TopupPaymentApiWS();
+			service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
+			result = service.topupPrepaid(topupPrepaidCmd.rechargeMsisdn, ""+topupPrepaidCmd.amount, ""+topupPrepaidCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(topupPrepaidCmd.reqDate), ""+topupPrepaidCmd.balanceBonus, ""+topupPrepaidCmd.dataBonus, topupPrepaidCmd.originalNumber, topupPrepaidCmd.token);
+		} catch (Exception e) {
+			// TODO: handle exception
+			topupPrepaidCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			topupPrepaidCmd.resultString=e.getMessage();
+			logInfo(topupPrepaidCmd.getRespString());
+			queueResp.enqueue(topupPrepaidCmd);
+			return;
+		}
+
 		topupPrepaidCmd.result = PaymentGWResultCode.R_SUCCESS;
-		topupPrepaidCmd.currentBalance = result.getTargetCurrentBalance().isNil()?0:Integer.parseInt(result.getTargetCurrentBalance().getValue());
+		try {
+			topupPrepaidCmd.currentBalance = result.getTargetCurrentBalance().isNil()?0:Integer.parseInt(result.getTargetCurrentBalance().getValue());
+		} catch (Exception e) {
+			// TODO: handle exception
+			logWarning("OnTopupPrepaidCmd: Error when parse TargetCurrentBalance field of msisdn "+topupPrepaidCmd.msisdn);
+			topupPrepaidCmd.currentBalance = 0;
+		}
+		
 		try {
 			topupPrepaidCmd.newActiveDate = result.getTargetNewActivedate().isNil()?null:(new SimpleDateFormat("yyyyMMdd").parse(result.getTargetNewActivedate().getValue()));
-		} catch (ParseException e) {
+		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
-			logError("OnTopupPrepaidCmd: Error when parse newActiveDate field of msisdn "+topupPrepaidCmd.msisdn);
+			logWarning("OnTopupPrepaidCmd: Error when parse TargetNewActivedate field of msisdn "+topupPrepaidCmd.msisdn);
 			topupPrepaidCmd.newActiveDate = null;
 		}
 		TopupPaymentApiWSTopupPrepaidHeader header = result.getTopupMasterSimPrepaidHeader().isNil()?null:result.getTopupMasterSimPrepaidHeader().getValue();
 		if(header!=null){
-			topupPrepaidCmd.resultCode=Integer.parseInt(header.getResultcode().getValue());
-			topupPrepaidCmd.resultString=header.getResultDes().getValue();
+			try {
+				topupPrepaidCmd.resultCode=header.getResultcode().isNil()?PaymentGWResultCode.RC_PAYMENTGW_RESULT_NULL:Integer.parseInt(header.getResultcode().getValue());
+				topupPrepaidCmd.resultString=header.getResultDes().getValue();
+			} catch (Exception e) {
+				// TODO: handle exception
+				topupPrepaidCmd.resultCode = PaymentGWResultCode.RC_PAYMENTGW_RESULT_WRONG_FORMAT;
+				topupPrepaidCmd.resultString = "PaymentGW ResultCode:"+header.getResultcode().getValue();
+				topupPrepaidCmd.result = PaymentGWResultCode.R_ERROR;
+			}
 		}
 		else{
-			topupPrepaidCmd.resultCode=-1;
-			topupPrepaidCmd.resultString="Call API function error";
+			topupPrepaidCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			topupPrepaidCmd.resultString=PaymentGWResultCode.resultDesc.get(PaymentGWResultCode.RC_CALL_SOAP_ERROR);
+			topupPrepaidCmd.result = PaymentGWResultCode.R_ERROR;
 		}
-		
+
 		logInfo(topupPrepaidCmd.getRespString());
 		queueResp.enqueue(topupPrepaidCmd);
 	}
@@ -143,9 +208,23 @@ public class PaymentGWSession extends ProcessingThread {
 	private void OnGetSubInfoCmd(GetSubInfoCmd getSubInfoCmd) {
 		// TODO Auto-generated method stub
 		logInfo(getSubInfoCmd.getReqString());
-		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
-		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSQeuryProfilefoResult result = service.qeuryProfileSubcriber(getSubInfoCmd.rechargeMsisdn, ""+getSubInfoCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(getSubInfoCmd.reqDate), getSubInfoCmd.token);
+		TopupPaymentApiWS topupPaymentApiWS = null;
+		TopupPaymentApiWSPortType service = null;
+		TopupPaymentApiWSQeuryProfilefoResult result = null;
+		try {
+			topupPaymentApiWS = new TopupPaymentApiWS();
+			service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
+			result = service.qeuryProfileSubcriber(getSubInfoCmd.rechargeMsisdn, ""+getSubInfoCmd.transactionId, (new SimpleDateFormat("yyyyMMdd")).format(getSubInfoCmd.reqDate), getSubInfoCmd.token);
+		} catch (Exception e) {
+			// TODO: handle exception
+			getSubInfoCmd.activeDate = null;
+			getSubInfoCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			getSubInfoCmd.resultString=e.getMessage();
+			logInfo(getSubInfoCmd.getRespString());
+			queueResp.enqueue(getSubInfoCmd);
+			return;
+		}
+
 		getSubInfoCmd.result = PaymentGWResultCode.R_SUCCESS;
 		try{
 			getSubInfoCmd.subType = result.getPayType().isNil()?-1:Integer.parseInt(result.getPayType().getValue());
@@ -153,55 +232,53 @@ public class PaymentGWSession extends ProcessingThread {
 		catch(NumberFormatException e){
 			getSubInfoCmd.subType = -1;
 		}
-		
+
 		try {
 			getSubInfoCmd.activeDate = result.getActiveDate().isNil()?null:(new SimpleDateFormat("yyyyMMdd").parse(result.getActiveDate().getValue()));
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			//e.printStackTrace();
-			logError("OnGetSubInfoCmd: Error when parse activeDate field of msisdn "+getSubInfoCmd.rechargeMsisdn);
 			getSubInfoCmd.activeDate = null;
-			getSubInfoCmd.resultCode=-1;
-			getSubInfoCmd.resultString="Wrong ActiveDate field format:"+result.getActiveDate().getValue();
+			getSubInfoCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			getSubInfoCmd.resultString="Wrong ActiveDate:"+result.getActiveDate().getValue();
 			logInfo(getSubInfoCmd.getRespString());
 			queueResp.enqueue(getSubInfoCmd);
 			return;
-			
+
 		}
 		try{
 			getSubInfoCmd.balance = result.getPpsBalance().isNil()?0:Integer.parseInt(result.getPpsBalance().getValue());
 		}
 		catch(NumberFormatException e){
-			logError("OnGetSubInfoCmd: Error when parse balance field of msisdn "+getSubInfoCmd.msisdn);
 			getSubInfoCmd.balance = 0;
 			if(getSubInfoCmd.subType == GetSubInfoCmd.SUBS_TYPE_PREPAID){
-				getSubInfoCmd.resultCode=-1;
-				getSubInfoCmd.resultString="Wrong Balance field format:"+result.getActiveDate().getValue();
+				getSubInfoCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+				getSubInfoCmd.resultString="Wrong Balance:"+result.getPpsBalance().getValue();
 				logInfo(getSubInfoCmd.getRespString());
 				queueResp.enqueue(getSubInfoCmd);
 				return;
 			}
 		}
-		
+		/*
 		getSubInfoCmd.subId = result.getSubID().isNil()?"":result.getSubID().getValue();
 		if(getSubInfoCmd.subId == null|| getSubInfoCmd.subId.equals("")){
-			getSubInfoCmd.resultCode=-1;
-			getSubInfoCmd.resultString="SubID is NULL"+result.getActiveDate().getValue();
+			getSubInfoCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			getSubInfoCmd.resultString="SubID is NULL";
 			logInfo(getSubInfoCmd.getRespString());
 			queueResp.enqueue(getSubInfoCmd);
 			return;
 		}
-		
+		 */
 		TopupPaymentApiWSQeuryProfileHeader header = result.getQeuryBasicInfoHeader().isNil()?null:result.getQeuryBasicInfoHeader().getValue();
 		if(header!=null){
 			getSubInfoCmd.resultCode=Integer.parseInt(header.getResultcode().getValue());
 			getSubInfoCmd.resultString=header.getResultDes().getValue();
 		}
 		else{
-			getSubInfoCmd.resultCode=-1;
-			getSubInfoCmd.resultString="Call API function error";
+			getSubInfoCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			getSubInfoCmd.resultString=PaymentGWResultCode.resultDesc.get(PaymentGWResultCode.RC_CALL_SOAP_ERROR);
 		}
-		
+
 		logInfo(getSubInfoCmd.getRespString());
 		queueResp.enqueue(getSubInfoCmd);
 	}
@@ -209,27 +286,75 @@ public class PaymentGWSession extends ProcessingThread {
 	private void OnLoginCmd(LoginCmd loginCmd) {
 		// TODO Auto-generated method stub
 		logInfo(loginCmd.getReqString());
-		
-		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
-		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSLoginResult result = service.loginWS(loginCmd.spID, loginCmd.spPassword, ""+loginCmd.transactionId);
+		TopupPaymentApiWS topupPaymentApiWS = null;
+		TopupPaymentApiWSPortType service = null;
+		TopupPaymentApiWSLoginResult result = null;
+		try {
+			topupPaymentApiWS = new TopupPaymentApiWS();
+			service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
+			result = service.loginWS(loginCmd.spID, loginCmd.spPassword, ""+loginCmd.transactionId);
+		} catch (Exception e) {
+			// TODO: handle exception
+			loginCmd.result = PaymentGWResultCode.R_ERROR;
+			loginCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			loginCmd.resultString=e.getMessage();
+			logInfo(loginCmd.getRespString());
+			queueResp.enqueue(loginCmd);
+			return;
+		}
+
 		loginCmd.result = PaymentGWResultCode.R_SUCCESS;
-		loginCmd.resultCode=Integer.parseInt(result.getResultcode().getValue());
+		try{
+			loginCmd.resultCode=Integer.parseInt(result.getResultcode().getValue());
+		}
+		catch(Exception e){
+			loginCmd.result = PaymentGWResultCode.R_ERROR;
+			loginCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			loginCmd.resultString=PaymentGWResultCode.resultDesc.get(PaymentGWResultCode.RC_CALL_SOAP_ERROR);
+			logError(loginCmd.getRespString());
+			queueResp.enqueue(loginCmd);
+			return;
+		}
 		loginCmd.resultString=result.getResultDescrib().getValue();
 		loginCmd.token=result.getToken().getValue();
 		logInfo(loginCmd.getRespString());
 		queueResp.enqueue(loginCmd);
 	}
-	
+
 	private void OnKeepAliveCmd(KeepAliveCmd keepAliveCmd) {
 		// TODO Auto-generated method stub
 		logInfo(keepAliveCmd.getReqString());
-		TopupPaymentApiWS topupPaymentApiWS = new TopupPaymentApiWS();
-		TopupPaymentApiWSPortType service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
-		TopupPaymentApiWSKeepAliveResult result = service.keepalive(keepAliveCmd.token);
+		TopupPaymentApiWS topupPaymentApiWS = null;
+		TopupPaymentApiWSPortType service = null;
+		TopupPaymentApiWSKeepAliveResult result = null;
+		try {
+			topupPaymentApiWS = new TopupPaymentApiWS();
+			service = topupPaymentApiWS.getTopupPaymentApiWSHttpSoap11Endpoint();
+			result = service.keepalive(keepAliveCmd.token);
+		} catch (Exception e) {
+			// TODO: handle exception
+			keepAliveCmd.result = PaymentGWResultCode.R_ERROR;
+			keepAliveCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			keepAliveCmd.resultString=e.getMessage();
+			logError(keepAliveCmd.getRespString());
+			queueResp.enqueue(keepAliveCmd);
+			return;
+		}
+
 		keepAliveCmd.result = PaymentGWResultCode.R_SUCCESS;
-		keepAliveCmd.resultCode=Integer.parseInt(result.getResultcode().getValue());
-		keepAliveCmd.resultString=result.getResultDes().getValue();
+		try{
+			keepAliveCmd.resultCode=Integer.parseInt(result.getResultcode().getValue());
+			keepAliveCmd.resultString=result.getResultDes().isNil()?"NULL value":result.getResultDes().getValue();
+		}
+		catch(Exception e){
+			keepAliveCmd.result = PaymentGWResultCode.R_ERROR;
+			keepAliveCmd.resultCode=PaymentGWResultCode.RC_CALL_SOAP_ERROR;
+			keepAliveCmd.resultString=PaymentGWResultCode.resultDesc.get(PaymentGWResultCode.RC_CALL_SOAP_ERROR);
+			logError(keepAliveCmd.getRespString());
+			queueResp.enqueue(keepAliveCmd);
+			return;
+		}
+		
 		logInfo(keepAliveCmd.getRespString());
 		queueResp.enqueue(keepAliveCmd);
 	}

@@ -15,8 +15,10 @@ import com.itpro.etopup.struct.DealerRequest;
 import com.itpro.etopup.struct.DeleteDealerCmd;
 import com.itpro.etopup.struct.MTRecord;
 import com.itpro.etopup.struct.MoveDealerProvinceCmd;
+import com.itpro.etopup.struct.Promotion;
 import com.itpro.etopup.struct.Province;
 import com.itpro.etopup.struct.RechargeCdrRecord;
+import com.itpro.etopup.struct.RefundRechargeCdrRecord;
 import com.itpro.etopup.struct.TransactionRecord;
 import com.itpro.etopup.struct.dealercmd.BatchRechargeElement;
 import com.itpro.etopup.struct.dealercmd.ChangePinCmd;
@@ -435,8 +437,8 @@ public class DbConnection extends MySQLConnection {
 		case TransactionRecord.TRANS_TYPE_STOCK_ALLOCATION:
 			sql = "INSERT INTO transactions"
 					+ "(id, date_time, type, dealer_msisdn, dealer_id, dealer_province, customer_care, dealer_category, transaction_amount_req, balance_changed_amount, balance_before, balance_after, "
-					+ "agent, agent_id, approved, approved_id, cash_value, commision_value, promotion_value, iv_cash_kip, iv_cash_baht, iv_cash_usd, iv_cash_yuan, iv_rate_baht, iv_rate_usd, iv_rate_yuan, iv_paymode, iv_payinfo, refer_transaction_id, remark, status, result_description, service_trans_id) "
-					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ "agent, agent_id, approved, approved_id, cash_value, commision_rate, commision_value, promotion_value, iv_cash_kip, iv_cash_baht, iv_cash_usd, iv_cash_yuan, iv_rate_baht, iv_rate_usd, iv_rate_yuan, iv_paymode, iv_payinfo, refer_transaction_id, remark, status, result_description, service_trans_id) "
+					+ "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 			ps = connection.prepareStatement(sql);
 			ps.setInt(1, transactionRecord.id);
 			ps.setTimestamp(2, transactionRecord.date_time);
@@ -455,22 +457,23 @@ public class DbConnection extends MySQLConnection {
 			ps.setString(15, transactionRecord.approved);
 			ps.setInt(16, transactionRecord.approved_id);
 			ps.setLong(17, transactionRecord.addBalanceInfo.cash_value);
-			ps.setLong(18, transactionRecord.addBalanceInfo.commision_value);
-			ps.setLong(19, transactionRecord.addBalanceInfo.promotion_value);
-			ps.setLong(20, transactionRecord.addBalanceInfo.iv_cash_kip);
-			ps.setLong(21, transactionRecord.addBalanceInfo.iv_cash_baht);
-			ps.setLong(22, transactionRecord.addBalanceInfo.iv_cash_usd);
-			ps.setLong(23, transactionRecord.addBalanceInfo.iv_cash_yuan);
-			ps.setLong(24, transactionRecord.addBalanceInfo.iv_rate_baht);
-			ps.setLong(25, transactionRecord.addBalanceInfo.iv_rate_usd);
-			ps.setLong(26, transactionRecord.addBalanceInfo.iv_rate_yuan);
-			ps.setInt(27, transactionRecord.addBalanceInfo.iv_paymode);
-			ps.setString(28, transactionRecord.addBalanceInfo.iv_payinfo);
-			ps.setInt(29, transactionRecord.refer_transaction_id);
-			ps.setString(30, transactionRecord.remark);
-			ps.setInt(31, transactionRecord.status);
-			ps.setString(32, transactionRecord.result_description);
-			ps.setInt(33, transactionRecord.service_trans_id);
+			ps.setDouble(18, transactionRecord.addBalanceInfo.commision_rate);
+			ps.setLong(19, transactionRecord.addBalanceInfo.commision_value);
+			ps.setLong(20, transactionRecord.addBalanceInfo.promotion_value);
+			ps.setDouble(21, transactionRecord.addBalanceInfo.iv_cash_kip);
+			ps.setDouble(22, transactionRecord.addBalanceInfo.iv_cash_baht);
+			ps.setDouble(23, transactionRecord.addBalanceInfo.iv_cash_usd);
+			ps.setDouble(24, transactionRecord.addBalanceInfo.iv_cash_yuan);
+			ps.setDouble(25, transactionRecord.addBalanceInfo.iv_rate_baht);
+			ps.setDouble(26, transactionRecord.addBalanceInfo.iv_rate_usd);
+			ps.setDouble(27, transactionRecord.addBalanceInfo.iv_rate_yuan);
+			ps.setInt(28, transactionRecord.addBalanceInfo.iv_paymode);
+			ps.setString(29, transactionRecord.addBalanceInfo.iv_payinfo);
+			ps.setInt(30, transactionRecord.refer_transaction_id);
+			ps.setString(31, transactionRecord.remark);
+			ps.setInt(32, transactionRecord.status);
+			ps.setString(33, transactionRecord.result_description);
+			ps.setInt(34, transactionRecord.service_trans_id);
 			ps.execute();
 			ps.close();
 			break;
@@ -694,7 +697,7 @@ public class DbConnection extends MySQLConnection {
 		Vector<AgentRequest> agentRequests = new Vector<AgentRequest>();
 		PreparedStatement ps=connection.prepareStatement(
 				"SELECT id, req_type, req_date, agent_username, agent_id, approve_id, dealer_msisdn, dealer_contact_phone, dealer_name, dealer_parent_id, dealer_province_code, customer_care, dealer_id_card_number, "
-				+ "dealer_birthdate, dealer_address, cash_value, commision_value, promotion_value, iv_cash_kip, iv_cash_baht, iv_cash_usd, iv_cash_yuan, iv_rate_baht, iv_rate_usd, iv_rate_yuan, "
+				+ "dealer_birthdate, dealer_address, cash_value, commision_rate, commision_value, promotion_value, iv_cash_kip, iv_cash_baht, iv_cash_usd, iv_cash_yuan, iv_rate_baht, iv_rate_usd, iv_rate_yuan, "
 				+ "iv_paymode, iv_payinfo, refund_transaction_id,refund_msisdn,refund_amount,category, remark FROM agent_requests WHERE status = 0");
 		ps.setMaxRows(30);
 		ps.execute();
@@ -743,15 +746,16 @@ public class DbConnection extends MySQLConnection {
 			//cash_value, commision_value, iv_cash_kip, iv_cash_baht, iv_cash_usd, iv_cash_yuan, iv_rate_baht, iv_rate_usd, iv_rate_yuan
 			
 			agentRequest.addBalanceInfo.cash_value = rs.getLong("cash_value");
-			agentRequest.addBalanceInfo.commision_value = rs.getInt("commision_value");
-			agentRequest.addBalanceInfo.promotion_value = rs.getInt("promotion_value");
-			agentRequest.addBalanceInfo.iv_cash_kip = rs.getInt("iv_cash_kip");
-			agentRequest.addBalanceInfo.iv_cash_baht = rs.getInt("iv_cash_baht");
-			agentRequest.addBalanceInfo.iv_cash_usd = rs.getInt("iv_cash_usd");
-			agentRequest.addBalanceInfo.iv_cash_yuan = rs.getInt("iv_cash_yuan");
-			agentRequest.addBalanceInfo.iv_rate_baht = rs.getInt("iv_rate_baht");
-			agentRequest.addBalanceInfo.iv_rate_usd = rs.getInt("iv_rate_usd");
-			agentRequest.addBalanceInfo.iv_rate_yuan = rs.getInt("iv_rate_yuan");
+			agentRequest.addBalanceInfo.commision_rate = rs.getDouble("commision_rate");
+			agentRequest.addBalanceInfo.commision_value = rs.getLong("commision_value");
+			agentRequest.addBalanceInfo.promotion_value = rs.getLong("promotion_value");
+			agentRequest.addBalanceInfo.iv_cash_kip = rs.getDouble("iv_cash_kip");
+			agentRequest.addBalanceInfo.iv_cash_baht = rs.getDouble("iv_cash_baht");
+			agentRequest.addBalanceInfo.iv_cash_usd = rs.getDouble("iv_cash_usd");
+			agentRequest.addBalanceInfo.iv_cash_yuan = rs.getDouble("iv_cash_yuan");
+			agentRequest.addBalanceInfo.iv_rate_baht = rs.getDouble("iv_rate_baht");
+			agentRequest.addBalanceInfo.iv_rate_usd = rs.getDouble("iv_rate_usd");
+			agentRequest.addBalanceInfo.iv_rate_yuan = rs.getDouble("iv_rate_yuan");
 			agentRequest.addBalanceInfo.iv_paymode = rs.getInt("iv_paymode");
 			agentRequest.addBalanceInfo.iv_payinfo = rs.getString("iv_payinfo");
 			
@@ -854,7 +858,7 @@ public class DbConnection extends MySQLConnection {
 	
 	public void updateAgentRequest(AgentRequest agentRequest) throws SQLException {
 		// TODO Auto-generated method stub
-		String sql = "UPDATE agent_requests SET status=?, approve_username =?, result_code = ?, result_description=?";;
+		String sql = "UPDATE agent_requests SET status=?, agent_username=?, approve_username =?, result_code = ?, result_description=?";;
 		if(agentRequest.dealer_id!=0)
 			sql+=", dealer_id=?";
 		if(agentRequest.transaction_id!=0)
@@ -864,10 +868,11 @@ public class DbConnection extends MySQLConnection {
 		PreparedStatement ps = null;
 		ps=connection.prepareStatement(sql);
 		ps.setInt(1, agentRequest.status);
-		ps.setString(2, agentRequest.agentApproved!=null?agentRequest.agentApproved.user_name:null);
-		ps.setInt(3, agentRequest.result_code);
-		ps.setString(4, AgentRequest.resultString[agentRequest.result_code]);
-		int index = 4;
+		ps.setString(2, agentRequest.agentInit!=null?agentRequest.agentInit.user_name:null);
+		ps.setString(3, agentRequest.agentApproved!=null?agentRequest.agentApproved.user_name:null);
+		ps.setInt(4, agentRequest.result_code);
+		ps.setString(5, AgentRequest.resultString[agentRequest.result_code]);
+		int index = 5;
 		if(agentRequest.dealer_id!=0)
 			ps.setInt(++index, agentRequest.dealer_id);
 	
@@ -1003,35 +1008,40 @@ public class DbConnection extends MySQLConnection {
     }
 
 
-    public void insertRefundCdrRecord(String dealer_msisdn, int dealer_id, int dealer_province, int customer_care, int dealer_category, String msisdn, int receiver_province, long charge_value,int result_code,String result_string,int status,int transactionID, String spID,String serviceID, int transactionRecordId) throws SQLException {
+    public void insertRefundCdrRecord(RefundRechargeCdrRecord refundRechargeCdrRecord) throws SQLException {
         // TODO Auto-generated method stub
         PreparedStatement ps = null;
-        String sql = "INSERT `refund_cdr`(`date_time`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`customer_care`,`dealer_category`,`msisdn`,`receiver_province`,`charge_value`,`result_code`,`result_string`,`status`,`transactionID`,`spID`,`serviceID`,`transactionRecordId`)"
-                + " VALUES (now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT `refund_cdr`(`date_time`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`customer_care`,`dealer_category`,`msisdn`,`receiver_province`,`charge_value`,`result_code`,`result_string`,`status`,`payment_transaction_id`,`spID`,`serviceID`,`transaction_id`, `type`, `receiver_sub_type`, `balance_changed_amount`, `balance_before`, `balance_after`)"
+                + " VALUES (now(),?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         ps = connection.prepareStatement(sql);
-        ps.setString(1, dealer_msisdn);
-        ps.setInt(2, dealer_id);
-        ps.setInt(3, dealer_province);
-        ps.setInt(4, customer_care);
-        ps.setInt(5, dealer_category);
-        ps.setString(6, msisdn);
-        ps.setInt(7, receiver_province);
-        ps.setLong(8, charge_value);
-        ps.setInt(9, result_code);
-        ps.setString(10, result_string);
-        ps.setInt(11, status);
-        ps.setInt(12, transactionID);
-        ps.setString(13, spID);
-        ps.setString(14, serviceID);
-        ps.setInt(15, transactionRecordId);
+        ps.setString(1, refundRechargeCdrRecord.dealer_msisdn);
+        ps.setInt(2, refundRechargeCdrRecord.dealer_id);
+        ps.setInt(3, refundRechargeCdrRecord.dealer_province);
+        ps.setInt(4, refundRechargeCdrRecord.customer_care);
+        ps.setInt(5, refundRechargeCdrRecord.dealer_category);
+        ps.setString(6, refundRechargeCdrRecord.msisdn);
+        ps.setInt(7, refundRechargeCdrRecord.receiver_province);
+        ps.setLong(8, refundRechargeCdrRecord.charge_value);
+        ps.setInt(9, refundRechargeCdrRecord.result_code);
+        ps.setString(10, refundRechargeCdrRecord.result_string);
+        ps.setInt(11, refundRechargeCdrRecord.status);
+        ps.setInt(12, refundRechargeCdrRecord.payment_transaction_id);
+        ps.setString(13, refundRechargeCdrRecord.spID);
+        ps.setString(14, refundRechargeCdrRecord.serviceID);
+        ps.setInt(15, refundRechargeCdrRecord.transaction_id);
+        ps.setInt(16, refundRechargeCdrRecord.type);
+        ps.setInt(17, refundRechargeCdrRecord.receiver_sub_type);
+        ps.setLong(18, refundRechargeCdrRecord.balance_changed_amount);
+        ps.setLong(19, refundRechargeCdrRecord.balance_before);
+        ps.setLong(20, refundRechargeCdrRecord.balance_after);
         ps.execute();
         ps.close();
     }
     public void insertRechargeCdr(RechargeCdrRecord rechargeCdrRecord) throws SQLException {
         // TODO Auto-generated method stub
         PreparedStatement ps = null;
-        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`dealer_category`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_province`,`receiver_sub_type`,`recharge_value`,`transaction_id`,`result`,`result_code`,`result_description`) "
-                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO `recharge_cdr`(`payment_transaction_id`,`date_time`,`type`,`dealer_msisdn`,`dealer_id`,`dealer_province`,`dealer_category`,`balance_changed_amount`,`balance_before`,`balance_after`,`receiver_msidn`,`receiver_province`,`receiver_sub_type`,`receiver_active_date`,`receiver_new_expire_date`,`recharge_value`,`bonus_balance`,`bonus_data`,`promotion_balance_id`,`promotion_data_id`,`transaction_id`,`result`,`result_code`,`result_description`) "
+                + "VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
         ps=connection.prepareStatement(sql);
         ps.setInt(1,rechargeCdrRecord.payment_transaction_id);
         ps.setTimestamp(2,rechargeCdrRecord.date_time);
@@ -1046,11 +1056,19 @@ public class DbConnection extends MySQLConnection {
         ps.setString(11,rechargeCdrRecord.receiver_msidn);
         ps.setInt(12, rechargeCdrRecord.receiver_province);
         ps.setInt(13,rechargeCdrRecord.receiver_sub_type);
-        ps.setInt(14,rechargeCdrRecord.recharge_value);
-        ps.setInt(15,rechargeCdrRecord.transaction_id);
-        ps.setInt(16,rechargeCdrRecord.result);
-        ps.setInt(17,rechargeCdrRecord.result_code);
-        ps.setString(18,rechargeCdrRecord.result_description);
+        ps.setDate(14, rechargeCdrRecord.receiver_active_date);
+        ps.setDate(15, rechargeCdrRecord.receiver_new_expire_date);
+        ps.setInt(16,rechargeCdrRecord.recharge_value);
+        
+        ps.setInt(17,rechargeCdrRecord.bonus_balance);
+        ps.setInt(18,rechargeCdrRecord.bonus_data);
+        ps.setInt(19,rechargeCdrRecord.promotion_balance_id);
+        ps.setInt(20,rechargeCdrRecord.promotion_data_id);
+        
+        ps.setInt(21,rechargeCdrRecord.transaction_id);
+        ps.setInt(22,rechargeCdrRecord.result);
+        ps.setInt(23,rechargeCdrRecord.result_code);
+        ps.setString(24,rechargeCdrRecord.result_description);
         ps.execute();
         ps.close();
     }
@@ -1110,5 +1128,59 @@ public class DbConnection extends MySQLConnection {
 		rs.close();
 		ps.close();
 		return result;
+	}
+	
+	public Promotion getPromotionBalance(int topupAmount) throws SQLException {
+		// TODO Auto-generated method stub
+		Promotion promotion = null;
+		PreparedStatement ps=connection.prepareStatement(
+				"SELECT id, date_time, agent_init_id, from_date, to_date, topup_value_level, param_type, param_value FROM promotions WHERE promotion_type = ? AND from_date<=DATE(NOW()) AND to_date>=DATE(NOW()) AND topup_value_level <=? AND status = ? ORDER BY topup_value_level DESC limit 1");
+		ps.setInt(1, Promotion.PROMOTION_TYPE_BALANCE);
+		ps.setInt(2, topupAmount);
+		ps.setInt(3, Promotion.STATUS_ACTIVE);
+		ps.execute();
+		ResultSet rs = ps.getResultSet();
+		if(rs.next()) {
+			promotion = new Promotion();
+			promotion.id = rs.getInt("id");
+			promotion.promotion_type = Promotion.PROMOTION_TYPE_BALANCE;
+			promotion.agent_init_id = rs.getInt("agent_init_id");
+			promotion.date_time = rs.getTimestamp("date_time");
+			promotion.from_date = rs.getDate("from_date");
+			promotion.to_date = rs.getDate("to_date");
+			promotion.topup_value_level = rs.getInt("topup_value_level");
+			promotion.param_type = rs.getInt("param_type");
+			promotion.param_value = rs.getDouble("param_value");
+		}
+		rs.close();
+		ps.close();
+		return promotion;
+	}
+	
+	public Promotion getPromotionData(int topupAmount) throws SQLException {
+		// TODO Auto-generated method stub
+		Promotion promotion = null;
+		PreparedStatement ps=connection.prepareStatement(
+				"SELECT id, date_time, agent_init_id, from_date, to_date, topup_value_level, param_type, param_value FROM promotions WHERE promotion_type = ? AND from_date<=DATE(NOW()) AND to_date>=DATE(NOW()) AND topup_value_level <=? AND status = ? ORDER BY topup_value_level DESC limit 1");
+		ps.setInt(1, Promotion.PROMOTION_TYPE_DATA);
+		ps.setInt(2, topupAmount);
+		ps.setInt(3, Promotion.STATUS_ACTIVE);
+		ps.execute();
+		ResultSet rs = ps.getResultSet();
+		if(rs.next()) {
+			promotion = new Promotion();
+			promotion.id = rs.getInt("id");
+			promotion.promotion_type = Promotion.PROMOTION_TYPE_DATA;
+			promotion.agent_init_id = rs.getInt("agent_init_id");
+			promotion.date_time = rs.getTimestamp("date_time");
+			promotion.from_date = rs.getDate("from_date");
+			promotion.to_date = rs.getDate("to_date");
+			promotion.topup_value_level = rs.getInt("topup_value_level");
+			promotion.param_type = rs.getInt("param_type");
+			promotion.param_value = rs.getDouble("param_value");
+		}
+		rs.close();
+		ps.close();
+		return promotion;
 	}
 }
